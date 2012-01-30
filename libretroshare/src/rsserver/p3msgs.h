@@ -117,7 +117,7 @@ class p3Msgs: public RsMsgs
 	   * chat is sent to specifc peer
 	   * @param id peer to send chat msg to
 	   */
-	  virtual	bool	sendPrivateChat(const std::string& id, const std::wstring& msg);
+          virtual	bool	sendPrivateChat(const std::string& id, const std::wstring& msg,const char * audio_data = NULL, int audio_data_size = 0);
 
 	  /*!
 	   * returns the count of messages in public or private queue

@@ -129,7 +129,11 @@ void PopupChatDialog::addIncomingChatMsg(const ChatInfo& info)
 		QString message = QString::fromStdWString(info.msg);
 		QString name = QString::fromUtf8(rsPeers->getPeerName(info.rsid).c_str()) ;
 
-		cw->addChatMsg(true, name, sendTime, recvTime, message, ChatWidget::TYPE_NORMAL);
+                if (info.audio_data_size != 0 && info.audio_data) {
+                    cw->addAudioData(new QByteArray((const char*)info.audio_data, info.audio_data_size));
+                } else {
+                    cw->addChatMsg(true, name, sendTime, recvTime, message, ChatWidget::TYPE_NORMAL);
+                }
 	}
 }
 

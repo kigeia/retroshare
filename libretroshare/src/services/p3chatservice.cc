@@ -369,7 +369,7 @@ bool p3ChatService::isLobbyId(const std::string& id,ChatLobbyId& lobby_id)
 	return false ;
 }
 
-bool     p3ChatService::sendPrivateChat(const std::string &id, const std::wstring &msg)
+bool     p3ChatService::sendPrivateChat(const std::string &id, const std::wstring &msg, const char * audio_data, int audio_data_size)
 {
 	// look into ID. Is it a peer, or a chat lobby?
 
@@ -388,11 +388,23 @@ bool     p3ChatService::sendPrivateChat(const std::string &id, const std::wstrin
 
 	ci->PeerId(id);
 	ci->chatFlags = RS_CHAT_FLAG_PRIVATE;
+        if (audio_data_size != 0) {
+            ci->chatFlags |= RS_CHAT_FLAG_AUDIO_DATA ;
+            ci->setPriorityLevel(QOS_PRIORITY_RS_VOIP_DATA);
+        }
 	ci->sendTime = time(NULL);
 	ci->recvTime = ci->sendTime;
 	ci->message = msg;
+        ci->audio_data = (unsigned char *)audio_data;
+        ci->audio_data_size = audio_data_size;
 
 	if (!mLinkMgr->isOnline(id)) {
+                if (ci->chatFlags &  RS_CHAT_FLAG_AUDIO_DATA) {
+                        //discard message
+                        IndicateConfigChanged();
+                        return false;
+                }
+
 		/* peer is offline, add to outgoing list */
 		{
 			RsStackMutex stack(mChatMtx); /********** STACK LOCKED MTX ******/
@@ -921,7 +933,10 @@ bool p3ChatService::handleRecvChatMsgItem(RsChatMsgItem *ci)
 		rsicontrol->getNotify().notifyListChange(NOTIFY_LIST_PUBLIC_CHAT, NOTIFY_TYPE_ADD);
 	}
 	if (privateChanged) {
-		rsicontrol->getNotify().notifyListChange(NOTIFY_LIST_PRIVATE_INCOMING_CHAT, NOTIFY_TYPE_ADD);
+                if (ci->chatFlags & RS_CHAT_FLAG_AUDIO_DATA)
+                    rsicontrol->getNotify().notifyListChange(NOTIFY_LIST_PRIVATE_INCOMING_AUDIO_CHAT, NOTIFY_TYPE_ADD);
+                else
+                    rsicontrol->getNotify().notifyListChange(NOTIFY_LIST_PRIVATE_INCOMING_CHAT, NOTIFY_TYPE_ADD);
 
 		IndicateConfigChanged(); // only private chat messages are saved
 	}
@@ -1160,6 +1175,8 @@ void p3ChatService::initRsChatInfo(RsChatMsgItem *c, ChatInfo &i)
 	i.sendTime = c->sendTime;
 	i.recvTime = c->recvTime;
 	i.msg  = c->message;
+        i.audio_data = c->audio_data;
+        i.audio_data_size = c->audio_data_size;
 
 	RsChatLobbyMsgItem *lobbyItem = dynamic_cast<RsChatLobbyMsgItem*>(c) ;
 

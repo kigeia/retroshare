@@ -45,6 +45,7 @@ const uint32_t RS_CHAT_FLAG_REQUEST_CUSTOM_STATE   = 0x0040;
 const uint32_t RS_CHAT_FLAG_CUSTOM_STATE_AVAILABLE = 0x0080;
 const uint32_t RS_CHAT_FLAG_PARTIAL_MESSAGE        = 0x0100;
 const uint32_t RS_CHAT_FLAG_LOBBY                  = 0x0200;
+const uint32_t RS_CHAT_FLAG_AUDIO_DATA             = 0x0400;
 
 const uint32_t RS_CHATMSG_CONFIGFLAG_INCOMING 		= 0x0001;
 
@@ -96,12 +97,12 @@ class RsChatItem: public RsItem
 class RsChatMsgItem: public RsChatItem
 {
 	public:
-		RsChatMsgItem() :RsChatItem(RS_PKT_SUBTYPE_DEFAULT) {}
+                RsChatMsgItem() :RsChatItem(RS_PKT_SUBTYPE_DEFAULT) {audio_data = NULL; audio_data_size = 0;}
 		RsChatMsgItem(uint8_t subtype) :RsChatItem(subtype) {}
 
 		RsChatMsgItem(void *data,uint32_t size,uint8_t subtype = RS_PKT_SUBTYPE_DEFAULT) ; // deserialization
 
-		virtual ~RsChatMsgItem() {}
+                virtual ~RsChatMsgItem() ;
 		virtual void clear() {}
 		virtual std::ostream& print(std::ostream &out, uint16_t indent = 0);
 
@@ -111,6 +112,10 @@ class RsChatMsgItem: public RsChatItem
 		uint32_t chatFlags;
 		uint32_t sendTime;
 		std::wstring message;
+
+                uint32_t audio_data_size;
+                unsigned char * audio_data;
+
 		/* not serialised */
 		uint32_t recvTime;
 };

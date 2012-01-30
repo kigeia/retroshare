@@ -72,6 +72,7 @@ const uint8_t QOS_PRIORITY_RS_STATUS_ITEM     			= 2 ;
 // VOIP
 //
 const uint8_t QOS_PRIORITY_RS_VOIP_PING               = 9 ;
+const uint8_t QOS_PRIORITY_RS_VOIP_DATA               = 9 ;
 
 // BanList
 //

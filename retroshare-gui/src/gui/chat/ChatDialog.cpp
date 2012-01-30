@@ -153,9 +153,10 @@ void ChatDialog::init(const std::string &peerId, const QString &title)
 
 /*static*/ void ChatDialog::chatChanged(int list, int type)
 {
-	if (list == NOTIFY_LIST_PRIVATE_INCOMING_CHAT && type == NOTIFY_TYPE_ADD) {
-		// play sound when recv a message
-		soundManager->play(SoundManager::NEW_CHAT_MESSAGE);
+        if ((list == NOTIFY_LIST_PRIVATE_INCOMING_CHAT || list == NOTIFY_LIST_PRIVATE_INCOMING_AUDIO_CHAT) && type == NOTIFY_TYPE_ADD) {
+                // play sound when recv a message
+                if (list != NOTIFY_LIST_PRIVATE_INCOMING_AUDIO_CHAT)
+                        soundManager->play(SoundManager::NEW_CHAT_MESSAGE);
 
 		std::list<std::string> ids;
 		if (rsMsgs->getPrivateChatQueueIds(true, ids)) {

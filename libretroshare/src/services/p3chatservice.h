@@ -74,7 +74,7 @@ class p3ChatService: public p3Service, public p3Config, public pqiMonitor
 		 * chat is sent to specifc peer
 		 * @param id peer to send chat msg to
 		 */
-		bool	sendPrivateChat(const std::string &id, const std::wstring &msg);
+                bool	sendPrivateChat(const std::string &id, const std::wstring &msg, const char * audio_data, int audio_data_size);
 
 		/*!
 		 * can be used to send 'immediate' status msgs, these status updates are meant for immediate use by peer (not saved by rs)

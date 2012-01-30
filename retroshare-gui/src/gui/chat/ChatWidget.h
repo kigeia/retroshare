@@ -24,7 +24,9 @@
 #define CHATWIDGET_H
 
 #include <QWidget>
+#include <QtMultimedia>
 
+#include "util/SpeexProcessor.h"
 #include "gui/common/HashBox.h"
 #include "ChatStyle.h"
 #include "gui/style/RSStyle.h"
@@ -70,11 +72,17 @@ public:
 
 	bool setStyle();
 	const RSStyle *getStyle() { return &style; }
+        void addAudioData(QByteArray*);
 
 private slots:
 	void clearChatHistory();
 	void deleteChatHistory();
 	void messageHistory();
+        void toggleAudioListen();
+        void toggleAudioMute();
+
+public slots:
+        void sendAudioData();
 
 signals:
 	void infoChanged(ChatWidget*);
@@ -141,6 +149,11 @@ private:
 	RSStyle style;
 
 	bool firstShow;
+
+        QAudioInput* input;
+        QAudioOutput* output;
+        QtSpeex::SpeexProcessor* processor;
+        void initSpeexProcessor();
 
 	Ui::ChatWidget *ui;
 };

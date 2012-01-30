@@ -67,6 +67,8 @@ ChatWidget::ChatWidget(QWidget *parent) :
 
 	connect(ui->sendButton, SIGNAL(clicked()), this, SLOT(sendChat()));
 	connect(ui->addFileButton, SIGNAL(clicked()), this , SLOT(addExtraFile()));
+        connect(ui->audioListenToggleButton, SIGNAL(clicked()), this , SLOT(toggleAudioListen()));
+        connect(ui->audioMuteToggleButton, SIGNAL(clicked()), this , SLOT(toggleAudioMute()));
 
 	connect(ui->textboldButton, SIGNAL(clicked()), this, SLOT(setFont()));
 	connect(ui->textunderlineButton, SIGNAL(clicked()), this, SLOT(setFont()));
@@ -599,11 +601,18 @@ void ChatWidget::updateStatus(const QString &peer_id, int status)
 
 		QString peerName = QString::fromUtf8(rsPeers->getPeerName(peerId).c_str());
 
-		switch (status) {
+                ui->audioListenToggleButton->setEnabled(true);
+                ui->audioMuteToggleButton->setEnabled(true);
+
+                switch (status) {
 		case RS_STATUS_OFFLINE:
 			ui->infoframe->setVisible(true);
 			ui->infolabel->setText(peerName + " " + tr("apears to be Offline.") +"\n" + tr("Messages you send will be delivered after Friend is again Online"));
-			break;
+                        ui->audioListenToggleButton->setChecked(false);
+                        ui->audioMuteToggleButton->setChecked(false);
+                        ui->audioListenToggleButton->setEnabled(false);
+                        ui->audioMuteToggleButton->setEnabled(false);
+                        break;
 
 		case RS_STATUS_INACTIVE:
 			ui->infoframe->setVisible(true);
@@ -693,4 +702,112 @@ bool ChatWidget::setStyle()
 	}
 
 	return false;
+}
+
+void ChatWidget::initSpeexProcessor() {
+
+        processor = new QtSpeex::SpeexProcessor(3, false);
+        processor->open(QIODevice::ReadWrite | QIODevice::Unbuffered);
+
+        QAudioFormat fmt;
+        fmt.setFrequency(8000);
+        fmt.setChannels(1);
+        fmt.setSampleSize(16);
+        fmt.setSampleType(QAudioFormat::SignedInt);
+        fmt.setByteOrder(QAudioFormat::LittleEndian);
+        fmt.setCodec("audio/pcm");
+
+        QAudioDeviceInfo it, dev;
+
+        dev = QAudioDeviceInfo::defaultInputDevice();
+//        foreach(it, QAudioDeviceInfo::availableDevices(QAudio::AudioInput)) {
+//                qDebug() << "input" << it.deviceName();
+//                if(it.deviceName() != "null") {
+//                        dev = it;
+//                        qDebug("Ok.");
+//                        break;
+//                }
+//        }
+
+        input = new QAudioInput(dev, fmt);
+        input->start(processor);
+
+        dev = QAudioDeviceInfo::defaultOutputDevice();
+//        foreach(it, QAudioDeviceInfo::availableDevices(QAudio::AudioOutput)) {
+//                qDebug() << "output" << it.deviceName();
+//                if(it.deviceName() != "null") {
+//                        dev = it;
+//                        qDebug("Ok.");
+//                        break;
+//                }
+//        }
+
+        output = new QAudioOutput(dev, fmt);
+        output->start(processor);
+}
+
+void ChatWidget::toggleAudioListen() {
+    if (!processor)  {
+        initSpeexProcessor();
+    }
+    if (ui->audioListenToggleButton->isChecked()) {
+    } else {
+        ui->audioListenToggleButton->setChecked(false);
+    }
+}
+
+void ChatWidget::toggleAudioMute() {
+    if (!processor)  {
+        initSpeexProcessor();
+    }
+    if (!processor) {
+        return;
+    }
+    if (ui->audioMuteToggleButton->isChecked()) {
+        ui->audioListenToggleButton->setChecked(true);
+        connect(processor, SIGNAL(networkPacketReady()), this, SLOT(sendAudioData()));
+    } else {
+        disconnect(processor, SIGNAL(networkPacketReady()), this, SLOT(sendAudioData()));
+    }
+
+}
+
+void ChatWidget::addAudioData(QByteArray* array) {
+    if (!ui->audioListenToggleButton->isChecked()) {
+        //launch an animation. Don't launch it if already animating
+        if (!ui->audioListenToggleButton->graphicsEffect() ||
+            (ui->audioListenToggleButton->graphicsEffect()->inherits("QGraphicsOpacityEffect") &&
+                ((QGraphicsOpacityEffect*)ui->audioListenToggleButton->graphicsEffect())->opacity() == 1)
+            ) {
+            QGraphicsOpacityEffect *effect = new QGraphicsOpacityEffect(ui->audioListenToggleButton);
+            ui->audioListenToggleButton->setGraphicsEffect(effect);
+            QPropertyAnimation *anim = new QPropertyAnimation(effect, "opacity");
+            anim->setStartValue(1);
+            anim->setKeyValueAt(0.5,0);
+            anim->setEndValue(1);
+            anim->setDuration(400);
+            anim->start();
+        }
+
+        //TODO make a toaster and a sound for the call
+        return;
+    }
+    if (!processor) {
+        initSpeexProcessor();
+    }
+    processor->putNetworkPacket(*array);
+}
+
+void ChatWidget::sendAudioData() {
+    while(processor->hasPendingPackets()) {
+        QByteArray qbarray = processor->getNetworkPacket();
+        if (qbarray != NULL) {
+            //int size = qbarray.length();
+            std::wstring s2 ( L"" );
+            char * buff = new char[qbarray.size()];
+            memcpy(buff,qbarray.constData(),qbarray.size()) ;
+            //const char* buff_ptr =  (const char*)qbarray.constData();
+            rsMsgs->sendPrivateChat(peerId, s2,buff, qbarray.size());
+        }
+    }
 }

@@ -1,5 +1,5 @@
 CONFIG += qt gui uic qrc resources uitools idle bitdht # framecatcher# blogs
-QT     += network xml script 
+QT     += network xml script multimedia
 
 TEMPLATE = app
 TARGET = RetroShare
@@ -37,7 +37,7 @@ linux-* {
 	PRE_TARGETDEPS *= ../../libretroshare/src/lib/libretroshare.a
 
 	LIBS += ../../libretroshare/src/lib/libretroshare.a
-	LIBS += -lssl -lgpgme -lupnp -lixml -lXss -lgnome-keyring
+        LIBS += -lssl -lgpgme -lupnp -lixml -lXss -lgnome-keyring -lspeex -lspeexdsp
 	LIBS *= -rdynamic
 	DEFINES *= HAVE_XSS # for idle time, libx screensaver extensions
 	DEFINES *= UBUNTU
@@ -265,6 +265,7 @@ HEADERS +=  rshare.h \
             util/printpreview.h \
             util/log.h \
             util/misc.h \
+            util/SpeexProcessor.h \
             gui/bwgraph/bwgraph.h \
             gui/profile/ProfileWidget.h \
             gui/profile/StatusMessage.h \
@@ -536,6 +537,7 @@ SOURCES +=  main.cpp \
             util/printpreview.cpp \
             util/log.cpp \
             util/misc.cpp \
+            util/SpeexProcessor.cpp \
             gui/bwgraph/bwgraph.cpp \
             gui/profile/ProfileWidget.cpp \
             gui/profile/StatusMessage.cpp \

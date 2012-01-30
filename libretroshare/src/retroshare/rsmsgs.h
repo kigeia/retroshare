@@ -149,6 +149,9 @@ class ChatInfo
 	uint32_t sendTime;
 	uint32_t recvTime;
 	std::wstring msg;
+
+        void* audio_data;
+        int audio_data_size;
 };
 
 class ChatLobbyInvite
@@ -232,7 +235,7 @@ virtual bool resetMessageStandardTagTypes(MsgTagType& tags) = 0;
 /****************************************/
 	/* Chat */
 virtual	bool   sendPublicChat(const std::wstring& msg) = 0;
-virtual	bool   sendPrivateChat(const std::string& id, const std::wstring& msg) = 0;
+virtual	bool   sendPrivateChat(const std::string& id, const std::wstring& msg,const char * audio_data = NULL, int audio_data_size = 0) = 0;
 virtual int     getPublicChatQueueCount() = 0;
 virtual	bool   getPublicChatQueue(std::list<ChatInfo> &chats) = 0;
 virtual int     getPrivateChatQueueCount(bool incoming) = 0;

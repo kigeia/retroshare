@@ -184,10 +184,10 @@ bool 	p3Msgs::sendPublicChat(const std::wstring& msg)
 	return mChatSrv -> sendPublicChat(msg);
 }
 
-bool 	p3Msgs::sendPrivateChat(const std::string& id, const std::wstring& msg)
+bool 	p3Msgs::sendPrivateChat(const std::string& id, const std::wstring& msg,const char * audio_data, int audio_data_size)
 {
 	/* send a message to peer */
-	return mChatSrv -> sendPrivateChat(id, msg);
+        return mChatSrv -> sendPrivateChat(id, msg,audio_data, audio_data_size);
 }
 
 void p3Msgs::sendGroupChatStatusString(const std::string& status_string) 

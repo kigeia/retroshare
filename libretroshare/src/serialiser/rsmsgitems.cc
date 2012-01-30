@@ -238,6 +238,9 @@ uint32_t RsChatMsgItem::serial_size()
 	s += 4; /* sendTime  */
 	s += GetTlvWideStringSize(message);
 
+        s += 4; /* audio_data_size  */
+        s += audio_data_size; /* audio data */
+
 	return s;
 }
 
@@ -354,6 +357,15 @@ RsChatAvatarItem::~RsChatAvatarItem()
 	}
 }
 
+RsChatMsgItem::~RsChatMsgItem()
+{
+        if(audio_data != NULL)
+        {
+                delete[] audio_data ;
+                audio_data = NULL ;
+        }
+}
+
 /* serialise the data to the buffer */
 bool RsChatMsgItem::serialise(void *data, uint32_t& pktsize)
 {
@@ -388,6 +400,19 @@ bool RsChatMsgItem::serialise(void *data, uint32_t& pktsize)
 		std::cerr << (char)message[i] ;
 	std::cerr << std::endl;
 	std::cerr << "=========== END MESSAGE ==========" << std::endl;
+#endif
+
+        ok &= setRawUInt32(data, tlvsize, &offset, audio_data_size) ;
+
+        /* add mandatory parts first */
+        if(audio_data && audio_data_size != 0) {
+                memcpy((void*)((unsigned char*)data+offset),audio_data,audio_data_size);
+        }
+        offset += audio_data_size;
+
+#ifdef RSSERIAL_DEBUG
+        std::cerr << "RsChatSerialiser::serialise() offset " << offset << std::endl;
+        std::cerr << "RsChatSerialiser::serialise() tlvsize " << tlvsize << std::endl;
 #endif
 
 	if (offset != tlvsize)
@@ -751,6 +776,14 @@ RsChatMsgItem::RsChatMsgItem(void *data,uint32_t /*size*/,uint8_t subtype)
 	ok &= getRawUInt32(data, rssize, &offset, &chatFlags);
 	ok &= getRawUInt32(data, rssize, &offset, &sendTime);
 	ok &= GetTlvWideString(data, rssize, &offset, TLV_TYPE_WSTR_MSG, message);
+
+        /* get mandatory parts first */
+        ok &= getRawUInt32(data, rssize, &offset,&audio_data_size);
+
+        audio_data = new unsigned char[audio_data_size] ;
+        if (audio_data)
+            memcpy(audio_data,(void*)((unsigned char*)data+offset),audio_data_size) ;
+        offset += audio_data_size ;
 
 #ifdef CHAT_DEBUG
 	std::cerr << "Building new chat msg item." << std::endl ;

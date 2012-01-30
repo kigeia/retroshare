@@ -1,5 +1,5 @@
 <RCC>
-    <qresource prefix="/" >
+    <qresource prefix="/">
         <file>images/splash.png</file>
         <file>images/attach.png</file>
         <file>images/pgp.png</file>
@@ -562,5 +562,10 @@
         <file>images/connect/mail_send.png</file>
         <file>help/version.html</file>
         <file>images/view-certificate-sign-48.png</file>
+        <file>images/connect/deafened_self.svg</file>
+        <file>images/connect/muted_self.svg</file>
+        <file>images/connect/self_undeafened.svg</file>
+        <file>images/connect/talking_on.svg</file>
+        <file>images/connect/talking_off.svg</file>
     </qresource>
 </RCC>
