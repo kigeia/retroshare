@@ -1,0 +1,24 @@
+# compiled Object files
+*.slo
+*.lo
+*.o
+
+# Compiled Dynamic libraries
+*.so
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+
+# qt moc files
+retroshare-gui/src/temp
+
+# qt generated makefile
+Makefile
+
+# user specific qtcreator config
+*.pro.user
+
+# executable
+retroshare-gui/src/RetroShare
