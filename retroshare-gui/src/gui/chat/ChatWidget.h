@@ -24,7 +24,8 @@
 #define CHATWIDGET_H
 
 #include <QWidget>
-#include <QtMultimedia>
+#include <QtMultimediaKit/QAudioInput>
+#include <QtMultimediaKit/QAudioOutput>
 
 #include "util/SpeexProcessor.h"
 #include "gui/common/HashBox.h"

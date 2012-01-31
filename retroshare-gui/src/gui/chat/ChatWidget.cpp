@@ -27,6 +27,7 @@
 #include <QColorDialog>
 #include <QFontDialog>
 #include <QMessageBox>
+#include <QGraphicsEffect>
 
 #include "ChatWidget.h"
 #include "ui_ChatWidget.h"

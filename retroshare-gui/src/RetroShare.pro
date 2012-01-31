@@ -1,5 +1,7 @@
 CONFIG += qt gui uic qrc resources uitools idle bitdht # framecatcher# blogs
-QT     += network xml script multimedia
+QT     += network xml script  mobility multimediakit
+CONFIG += mobility
+MOBILITY = multimedia
 
 TEMPLATE = app
 TARGET = RetroShare
