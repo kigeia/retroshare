@@ -13,7 +13,22 @@ SpeexProcessor::SpeexProcessor(int quality, bool wideband, unsigned echo_filter_
 	speex_encoder_ctl(enc_state, SPEEX_SET_QUALITY, &quality);
 	speex_encoder_ctl(enc_state, SPEEX_GET_FRAME_SIZE, &frame_size);
 
-	dec_state = speex_decoder_init(wideband ? &speex_wb_mode : &speex_nb_mode);
+
+        int speexQuality = 4;
+        speex_encoder_ctl(enc_state, SPEEX_SET_QUALITY, &speexQuality);
+
+        int enableVAD = 1; // VAD = Voice Activity Detection
+        speex_encoder_ctl(enc_state, SPEEX_SET_VAD, &enableVAD);
+        int enableDTX = 1; // DTX = Discontinuous Transmission
+        speex_encoder_ctl(enc_state, SPEEX_SET_DTX, &enableDTX);
+        int enableVBR = 1; // VBR = Variable Bit rate
+        speex_encoder_ctl(enc_state, SPEEX_SET_VBR, &enableVBR);
+        float VBRQuality = 4.0; // VBR = Variable Bit rate
+        speex_encoder_ctl(enc_state, SPEEX_SET_VBR_QUALITY, &VBRQuality);
+        int VBRBitRate = 2 * 1024 * 8; // VBR = Variable Bit rate
+        speex_encoder_ctl(enc_state, SPEEX_SET_VBR_MAX_BITRATE, &VBRBitRate);
+
+        dec_state = speex_decoder_init(wideband ? &speex_wb_mode : &speex_nb_mode);
 
 	unsigned rate = wideband ? 16000 : 8000;
 
@@ -21,10 +36,8 @@ SpeexProcessor::SpeexProcessor(int quality, bool wideband, unsigned echo_filter_
 
 	int state = 1; // on
         speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_AGC, &state);
-//        speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_VAD, &state);
-//        speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_DENOISE, &state);
-//        speex_encoder_ctl(enc_state, SPEEX_SET_VBR, &state);
-//        speex_encoder_ctl(enc_state, SPEEX_SET_DTX, &state);
+        speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_VAD, &state);
+        speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_DENOISE, &state);
 }
 
 SpeexProcessor::~SpeexProcessor() {
