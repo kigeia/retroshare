@@ -121,7 +121,9 @@ ChatWidget::ChatWidget(QWidget *parent) :
 	ui->attachPictureButton->setVisible(false);
 #endif
 
-	resetStatusBar();
+        resetStatusBar();
+
+        processor = NULL;
 }
 
 ChatWidget::~ChatWidget()
@@ -707,7 +709,7 @@ bool ChatWidget::setStyle()
 
 void ChatWidget::initSpeexProcessor() {
 
-        processor = new QtSpeex::SpeexProcessor(3, false);
+        processor = new QtSpeex::SpeexProcessor(5, false);
         processor->open(QIODevice::ReadWrite | QIODevice::Unbuffered);
 
         QAudioFormat fmt;
@@ -803,11 +805,9 @@ void ChatWidget::sendAudioData() {
     while(processor->hasPendingPackets()) {
         QByteArray qbarray = processor->getNetworkPacket();
         if (qbarray != NULL) {
-            //int size = qbarray.length();
             std::wstring s2 ( L"" );
             char * buff = new char[qbarray.size()];
             memcpy(buff,qbarray.constData(),qbarray.size()) ;
-            //const char* buff_ptr =  (const char*)qbarray.constData();
             rsMsgs->sendPrivateChat(peerId, s2,buff, qbarray.size());
         }
     }

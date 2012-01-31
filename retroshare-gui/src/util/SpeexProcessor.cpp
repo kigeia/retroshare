@@ -9,12 +9,9 @@ SpeexProcessor::SpeexProcessor(int quality, bool wideband, unsigned echo_filter_
 	bits = new SpeexBits;
 	speex_bits_init(bits);
 
-        int state = 1; // on
-
-        enc_state = speex_encoder_init(wideband ? &speex_wb_mode : &speex_nb_mode);
+	enc_state = speex_encoder_init(wideband ? &speex_wb_mode : &speex_nb_mode);
 	speex_encoder_ctl(enc_state, SPEEX_SET_QUALITY, &quality);
 	speex_encoder_ctl(enc_state, SPEEX_GET_FRAME_SIZE, &frame_size);
-        speex_encoder_ctl(enc_state, SPEEX_SET_VBR, &state);
 
 	dec_state = speex_decoder_init(wideband ? &speex_wb_mode : &speex_nb_mode);
 
@@ -22,10 +19,12 @@ SpeexProcessor::SpeexProcessor(int quality, bool wideband, unsigned echo_filter_
 
 	preprocessor = speex_preprocess_state_init(frame_size, rate);
 
-	speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_AGC, &state);
-        speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_DENOISE, &state);
-//        int db = -10;
-//        speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_NOISE_SUPPRESS, &db);
+	int state = 1; // on
+        speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_AGC, &state);
+//        speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_VAD, &state);
+//        speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_DENOISE, &state);
+//        speex_encoder_ctl(enc_state, SPEEX_SET_VBR, &state);
+//        speex_encoder_ctl(enc_state, SPEEX_SET_DTX, &state);
 }
 
 SpeexProcessor::~SpeexProcessor() {
