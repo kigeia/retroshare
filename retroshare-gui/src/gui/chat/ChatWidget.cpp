@@ -124,11 +124,20 @@ ChatWidget::ChatWidget(QWidget *parent) :
         resetStatusBar();
 
         processor = NULL;
+        output = NULL;
+        input = NULL;
 }
 
 ChatWidget::~ChatWidget()
 {
 	processSettings(false);
+
+        if (output) {
+            output->stop();
+        }
+        if (input) {
+            input->stop();
+        }
 
 	delete ui;
 }
@@ -819,7 +828,22 @@ void ChatWidget::addAudioData(QByteArray* array) {
     if (!processor) {
         initSpeexProcessor();
     }
+    if (output && output->error() != QAudio::NoError) {
+        // Error handling
+        std::cerr << "resetting output device. Error before reset " << output->error() << std::endl;
+        std::cerr << "output resetting output" << std::endl;
+        output->reset();
+        output->stop();
+        output->start(processor);
+    }
     processor->putNetworkPacket(*array);
+    if (input && input->error() != QAudio::NoError) {
+        // Error handling
+        std::cerr << "resetting input device. Error before reset " << input->error() << std::endl;
+        input->reset();
+        input->stop();
+        input->start(processor);
+    }
 }
 
 void ChatWidget::sendAudioData() {
