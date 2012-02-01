@@ -55,6 +55,11 @@ void p3HistoryMgr::addMessage(bool incoming, const std::string &chatPeerId, cons
 {
 	RsStackMutex stack(mHistoryMtx); /********** STACK LOCKED MTX ******/
 
+        if (!chatItem || (chatItem->chatFlags & RS_CHAT_FLAG_AUDIO_DATA)) {
+            //dont save audio chat
+            return;
+        }
+
 	if (mPublicEnable == false && chatPeerId.empty()) {
 		// public chat not enabled
 		return;
