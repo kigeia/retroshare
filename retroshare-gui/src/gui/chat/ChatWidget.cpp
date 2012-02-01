@@ -718,11 +718,11 @@ bool ChatWidget::setStyle()
 
 void ChatWidget::initSpeexProcessor() {
 
-        processor = new QtSpeex::SpeexProcessor(5, false);
+        processor = new QtSpeex::SpeexProcessor(5, true);
         processor->open(QIODevice::ReadWrite | QIODevice::Unbuffered);
 
         QAudioFormat fmt;
-        fmt.setFrequency(8000);
+        fmt.setFrequency(16000);
         fmt.setChannels(1);
         fmt.setSampleSize(16);
         fmt.setSampleType(QAudioFormat::SignedInt);
@@ -829,19 +829,18 @@ void ChatWidget::addAudioData(QByteArray* array) {
         initSpeexProcessor();
     }
     if (output && output->error() != QAudio::NoError) {
-        // Error handling
-        std::cerr << "resetting output device. Error before reset " << output->error() << std::endl;
-        std::cerr << "output resetting output" << std::endl;
-        output->reset();
+        std::cerr << "resetting output device. Error before reset " << output->error() << " buffer size : " << output->bufferSize() << std::endl;
         output->stop();
+        output->reset();
+        if (output->error() == QAudio::UnderrunError)
+            output->setBufferSize(10);
         output->start(processor);
     }
     processor->putNetworkPacket(*array);
     if (input && input->error() != QAudio::NoError) {
-        // Error handling
         std::cerr << "resetting input device. Error before reset " << input->error() << std::endl;
-        input->reset();
         input->stop();
+        input->reset();
         input->start(processor);
     }
 }
