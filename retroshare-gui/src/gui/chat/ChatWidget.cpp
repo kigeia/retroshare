@@ -723,52 +723,48 @@ void ChatWidget::initSpeexProcessor() {
         QAudioDeviceInfo it, dev;
 
         dev = QAudioDeviceInfo::defaultInputDevice();
-        std::cerr << dev.deviceName().toStdString () << std::endl;
-        if (dev.deviceName() == "null") {
+        if (dev.deviceName() != "pulse") {
             foreach(it, QAudioDeviceInfo::availableDevices(QAudio::AudioInput)) {
-                    qDebug() << "input" << it.deviceName();
-                    if(it.deviceName() == "pulse") {
-                            dev = it;
-                            qDebug("Ok.");
-                            break;
-                    }
+                std::cerr << "input" << it.deviceName().toStdString() << std::endl;
+                if(it.deviceName() == "pulse") {
+                        dev = it;
+                        qDebug("Ok.");
+                        break;
+                }
             }
         }
         if (dev.deviceName() == "null") {
             foreach(it, QAudioDeviceInfo::availableDevices(QAudio::AudioInput)) {
-                    qDebug() << "input" << it.deviceName();
-                    if(it.deviceName() != "null") {
-                            dev = it;
-                            qDebug("Ok.");
-                            break;
-                    }
+                if(it.deviceName() != "null") {
+                        dev = it;
+                        break;
+                }
             }
         }
+        std::cerr << "input sound device : " << dev.deviceName().toStdString () << std::endl;
 
         input = new QAudioInput(dev, fmt);
         input->start(processor);
 
         dev = QAudioDeviceInfo::defaultOutputDevice();
-        if (dev.deviceName() == "null") {
+        if (dev.deviceName() != "pulse") {
             foreach(it, QAudioDeviceInfo::availableDevices(QAudio::AudioOutput)) {
-                    qDebug() << "input" << it.deviceName();
+                    std::cerr << "output" << it.deviceName().toStdString() << std::endl;
                     if(it.deviceName() == "pulse") {
                             dev = it;
-                            qDebug("Ok.");
                             break;
                     }
             }
         }
         if (dev.deviceName() == "null") {
             foreach(it, QAudioDeviceInfo::availableDevices(QAudio::AudioOutput)) {
-                    qDebug() << "input" << it.deviceName();
                     if(it.deviceName() != "null") {
                             dev = it;
-                            qDebug("Ok.");
                             break;
                     }
             }
         }
+        std::cerr << "output sound device : " << dev.deviceName().toStdString () << std::endl;
 
         output = new QAudioOutput(dev, fmt);
         output->start(processor);
