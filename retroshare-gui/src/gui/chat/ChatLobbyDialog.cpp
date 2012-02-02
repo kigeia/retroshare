@@ -131,7 +131,11 @@ void ChatLobbyDialog::addIncomingChatMsg(const ChatInfo& info)
 	QString message = QString::fromStdWString(info.msg);
 	QString name = QString::fromUtf8(info.peer_nickname.c_str());
 
-	ui.chatWidget->addChatMsg(true, name, sendTime, recvTime, message, ChatWidget::TYPE_NORMAL);
+        if (info.audio_data_size != 0 && info.audio_data) {
+            ui.chatWidget->addAudioData(new QByteArray((const char*)info.audio_data, info.audio_data_size));
+        } else {
+            ui.chatWidget->addChatMsg(true, name, sendTime, recvTime, message, ChatWidget::TYPE_NORMAL);
+        }
 
 	// also update peer list.
 

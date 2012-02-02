@@ -376,7 +376,7 @@ bool     p3ChatService::sendPrivateChat(const std::string &id, const std::wstrin
 	ChatLobbyId lobby_id ;
 
 	if(isLobbyId(id,lobby_id))
-		return sendLobbyChat(id,msg,lobby_id) ;
+                return sendLobbyChat(id,msg,lobby_id, audio_data, audio_data_size) ;
 
 	// make chat item....
 #ifdef CHAT_DEBUG
@@ -1788,7 +1788,7 @@ void p3ChatService::locked_initLobbyBouncableObject(const ChatLobbyId& lobby_id,
 	item.nick = lobby.nick_name ;
 }
 
-bool p3ChatService::sendLobbyChat(const std::string &id, const std::wstring& msg, const ChatLobbyId& lobby_id)
+bool p3ChatService::sendLobbyChat(const std::string &id, const std::wstring& msg, const ChatLobbyId& lobby_id, const char * audio_data, int audio_data_size)
 {
 #ifdef CHAT_DEBUG
 	std::cerr << "Sending chat lobby message to lobby " << std::hex << lobby_id << std::dec << std::endl;
@@ -1808,8 +1808,13 @@ bool p3ChatService::sendLobbyChat(const std::string &id, const std::wstring& msg
 		item.chatFlags = RS_CHAT_FLAG_LOBBY | RS_CHAT_FLAG_PRIVATE;
 		item.sendTime = time(NULL);
 		item.recvTime = item.sendTime;
-		item.message = msg;
-	}
+                item.message = msg;
+                item.audio_data = (unsigned char *)audio_data;
+                item.audio_data_size = audio_data_size;
+                if (audio_data_size !=0) {
+                    item.chatFlags |= RS_CHAT_FLAG_AUDIO_DATA;
+                }
+        }
 
 	std::string ownId = rsPeers->getOwnId();
 

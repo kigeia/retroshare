@@ -357,15 +357,6 @@ RsChatAvatarItem::~RsChatAvatarItem()
 	}
 }
 
-RsChatMsgItem::~RsChatMsgItem()
-{
-        if(audio_data != NULL)
-        {
-                delete[] audio_data ;
-                audio_data = NULL ;
-        }
-}
-
 /* serialise the data to the buffer */
 bool RsChatMsgItem::serialise(void *data, uint32_t& pktsize)
 {

@@ -229,7 +229,7 @@ class p3ChatService: public p3Service, public p3Config, public pqiMonitor
 
 		/// receive and handle chat lobby item
 		bool recvLobbyChat(RsChatLobbyMsgItem*,const std::string& src_peer_id) ;
-		bool sendLobbyChat(const std::string &id, const std::wstring&, const ChatLobbyId&) ;
+                bool sendLobbyChat(const std::string &id, const std::wstring&, const ChatLobbyId&, const char * audio_data, int audio_data_size) ;
 		void handleRecvLobbyInvite(RsChatLobbyInviteItem*) ;
 		void checkAndRedirectMsgToLobby(RsChatMsgItem*) ;
 		void handleConnectionChallenge(RsChatLobbyConnectChallengeItem *item) ;

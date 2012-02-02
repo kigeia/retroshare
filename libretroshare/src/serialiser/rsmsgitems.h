@@ -98,11 +98,11 @@ class RsChatMsgItem: public RsChatItem
 {
 	public:
                 RsChatMsgItem() :RsChatItem(RS_PKT_SUBTYPE_DEFAULT) {audio_data = NULL; audio_data_size = 0;}
-		RsChatMsgItem(uint8_t subtype) :RsChatItem(subtype) {}
+                RsChatMsgItem(uint8_t subtype) :RsChatItem(subtype) {audio_data = NULL; audio_data_size = 0;}
 
 		RsChatMsgItem(void *data,uint32_t size,uint8_t subtype = RS_PKT_SUBTYPE_DEFAULT) ; // deserialization
 
-                virtual ~RsChatMsgItem() ;
+                virtual ~RsChatMsgItem() {}
 		virtual void clear() {}
 		virtual std::ostream& print(std::ostream &out, uint16_t indent = 0);
 
