@@ -16,7 +16,7 @@
 #include <speex/speex_echo.h>
 #include <speex/speex_jitter.h>
 
-#define ECHOTAILSIZE  40
+#define ECHOTAILSIZE  30
 #define SAMPLING_RATE 16000
 #define FRAME_SIZE 320
 
@@ -54,9 +54,12 @@ namespace QtSpeex {
 
 	private:
 		void* enc_state;
-		void* dec_state;
-		unsigned frame_size;
-		SpeexBits* bits;
+                void* dec_state;
+                SpeexBits* enc_bits;
+                SpeexBits* dec_bits;
+                int send_timestamp; //set at the encode time for the jitter buffer of the reciever
+                int  mostUpdatedTSatPut; //use for the decoder jitter
+                bool firsttimecalling_get;
 
                 SpeexPreprocessState* preprocessor;
                 SpeexEchoState       *echo_state;
@@ -66,9 +69,9 @@ namespace QtSpeex {
                 QByteArray inputBuffer, outputBuffer;
 		QList<QByteArray> inputNetworkBuffer, outputNetworkBuffer;
 
-                SpeexJitter* jitter;
+                SpeexJitter jitter;
 
-                void speex_jitter_init(void *decoder, int sampling_rate);
+                void speex_jitter_init(SpeexJitter *jit, void *decoder, int sampling_rate);
                 void speex_jitter_destroy();
                 void speex_jitter_put(char *packet, int len, int timestamp);
                 void speex_jitter_get(spx_int16_t *out, int *current_timestamp);
