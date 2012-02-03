@@ -829,20 +829,20 @@ void ChatWidget::addAudioData(QByteArray* array) {
         initSpeexProcessor();
     }
     if (output && output->error() != QAudio::NoError) {
-        std::cerr << "resetting output device. Error before reset " << output->error() << " buffer size : " << output->bufferSize() << std::endl;
+        std::cerr << "Restarting output device. Error before reset " << output->error() << " buffer size : " << output->bufferSize() << std::endl;
         output->stop();
         output->reset();
         if (output->error() == QAudio::UnderrunError)
-            output->setBufferSize(10);
+            output->setBufferSize(20);
         output->start(processor);
     }
-    processor->putNetworkPacket(*array);
     if (input && input->error() != QAudio::NoError) {
-        std::cerr << "resetting input device. Error before reset " << input->error() << std::endl;
+        std::cerr << "Restarting input device. Error before reset " << input->error() << std::endl;
         input->stop();
         input->reset();
         input->start(processor);
     }
+    processor->putNetworkPacket(*array);
 }
 
 void ChatWidget::sendAudioData() {
