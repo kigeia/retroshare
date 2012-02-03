@@ -80,7 +80,7 @@ private slots:
 	void deleteChatHistory();
 	void messageHistory();
         void toggleAudioListen();
-        void toggleAudioMute();
+        void toggleAudioMuteCapture();
 
 public slots:
         void sendAudioData();

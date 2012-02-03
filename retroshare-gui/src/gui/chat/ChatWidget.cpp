@@ -69,7 +69,7 @@ ChatWidget::ChatWidget(QWidget *parent) :
 	connect(ui->sendButton, SIGNAL(clicked()), this, SLOT(sendChat()));
 	connect(ui->addFileButton, SIGNAL(clicked()), this , SLOT(addExtraFile()));
         connect(ui->audioListenToggleButton, SIGNAL(clicked()), this , SLOT(toggleAudioListen()));
-        connect(ui->audioMuteToggleButton, SIGNAL(clicked()), this , SLOT(toggleAudioMute()));
+        connect(ui->audioMuteCaptureToggleButton, SIGNAL(clicked()), this , SLOT(toggleAudioMuteCapture()));
 
 	connect(ui->textboldButton, SIGNAL(clicked()), this, SLOT(setFont()));
 	connect(ui->textunderlineButton, SIGNAL(clicked()), this, SLOT(setFont()));
@@ -614,16 +614,16 @@ void ChatWidget::updateStatus(const QString &peer_id, int status)
 		QString peerName = QString::fromUtf8(rsPeers->getPeerName(peerId).c_str());
 
                 ui->audioListenToggleButton->setEnabled(true);
-                ui->audioMuteToggleButton->setEnabled(true);
+                ui->audioMuteCaptureToggleButton->setEnabled(true);
 
                 switch (status) {
 		case RS_STATUS_OFFLINE:
 			ui->infoframe->setVisible(true);
 			ui->infolabel->setText(peerName + " " + tr("apears to be Offline.") +"\n" + tr("Messages you send will be delivered after Friend is again Online"));
-                        ui->audioListenToggleButton->setChecked(false);
-                        ui->audioMuteToggleButton->setChecked(false);
-                        ui->audioListenToggleButton->setEnabled(false);
-                        ui->audioMuteToggleButton->setEnabled(false);
+                        //ui->audioListenToggleButton->setChecked(false);
+                        //ui->audioMuteCaptureToggleButton->setChecked(false);
+                        //ui->audioListenToggleButton->setEnabled(false);
+                        //ui->audioMuteCaptureToggleButton->setEnabled(false);
                         break;
 
 		case RS_STATUS_INACTIVE:
@@ -753,7 +753,6 @@ void ChatWidget::initSpeexProcessor() {
         std::cerr << "input sound device : " << dev.deviceName().toStdString () << std::endl;
 
         input = new QAudioInput(dev, fmt);
-        input->start(processor);
 
         dev = QAudioDeviceInfo::defaultOutputDevice();
         if (dev.deviceName() != "pulse") {
@@ -776,7 +775,6 @@ void ChatWidget::initSpeexProcessor() {
         std::cerr << "output sound device : " << dev.deviceName().toStdString () << std::endl;
 
         output = new QAudioOutput(dev, fmt);
-        output->start(processor);
 }
 
 void ChatWidget::toggleAudioListen() {
@@ -784,23 +782,27 @@ void ChatWidget::toggleAudioListen() {
         initSpeexProcessor();
     }
     if (ui->audioListenToggleButton->isChecked()) {
+        output->start(processor);
     } else {
         ui->audioListenToggleButton->setChecked(false);
+        output->stop();
     }
 }
 
-void ChatWidget::toggleAudioMute() {
+void ChatWidget::toggleAudioMuteCapture() {
     if (!processor)  {
         initSpeexProcessor();
     }
     if (!processor) {
         return;
     }
-    if (ui->audioMuteToggleButton->isChecked()) {
+    if (ui->audioMuteCaptureToggleButton->isChecked()) {
         ui->audioListenToggleButton->setChecked(true);
         connect(processor, SIGNAL(networkPacketReady()), this, SLOT(sendAudioData()));
+        input->start(processor);
     } else {
         disconnect(processor, SIGNAL(networkPacketReady()), this, SLOT(sendAudioData()));
+        input->stop();
     }
 
 }

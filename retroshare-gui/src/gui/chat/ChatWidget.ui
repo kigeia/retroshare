@@ -617,7 +617,7 @@ border: 1px solid #CCCCCC;
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="audioMuteToggleButton">
+      <widget class="QPushButton" name="audioMuteCaptureToggleButton">
        <property name="minimumSize">
         <size>
          <width>28</width>
