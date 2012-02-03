@@ -33,18 +33,18 @@ SpeexProcessor::SpeexProcessor(QObject *parent) : QIODevice(parent),
         speex_bits_init(dec_bits);
 
         enc_state = speex_encoder_init(&speex_wb_mode);
-        int quality = 5;
-        speex_encoder_ctl(enc_state, SPEEX_SET_QUALITY, &quality);
-
-        speex_encoder_ctl(enc_state, SPEEX_SET_QUALITY, &quality);
+        int tmp = 8;
+        speex_encoder_ctl(enc_state, SPEEX_SET_QUALITY, &tmp);
+        tmp = 10;
+        speex_encoder_ctl(enc_state, SPEEX_SET_COMPLEXITY, &tmp);
 
         int on = 1; // on
         speex_encoder_ctl(enc_state, SPEEX_SET_VAD, &on);// VAD = Voice Activity Detection
         speex_encoder_ctl(enc_state, SPEEX_SET_DTX, &on);// DTX = Discontinuous Transmission
         speex_encoder_ctl(enc_state, SPEEX_SET_VBR, &on);// VBR = Variable Bit rate
-        float VBRQuality = 4.0; // VBR = Variable Bit rate
+        float VBRQuality = 8.0; // VBR = Variable Bit rate
         speex_encoder_ctl(enc_state, SPEEX_SET_VBR_QUALITY, &VBRQuality);
-        int VBRBitRate = 2 * 1024 * 8; // VBR = Variable Bit rate
+        int VBRBitRate = 1024 * 8 * 5 / 2; // VBR = Variable Bit rate 2,5 kb/s
         speex_encoder_ctl(enc_state, SPEEX_SET_VBR_MAX_BITRATE, &VBRBitRate);
 
         dec_state = speex_decoder_init(&speex_wb_mode);
@@ -53,13 +53,16 @@ SpeexProcessor::SpeexProcessor(QObject *parent) : QIODevice(parent),
 
 
         preprocessor = speex_preprocess_state_init(FRAME_SIZE, SAMPLING_RATE);
-
         speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_AGC, &on);
+        tmp = 2;
+        speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_AGC_MAX_GAIN, &tmp);
         speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_VAD, &on);
         speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_DENOISE, &on);
+        tmp = -30;
+        speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_NOISE_SUPPRESS, &tmp);
 
         echo_state = speex_echo_state_init(FRAME_SIZE, ECHOTAILSIZE*FRAME_SIZE);
-        int tmp = SAMPLING_RATE;
+        tmp = SAMPLING_RATE;
         speex_echo_ctl(echo_state, SPEEX_ECHO_SET_SAMPLING_RATE, &tmp);
         speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_ECHO_STATE, echo_state);
 }
