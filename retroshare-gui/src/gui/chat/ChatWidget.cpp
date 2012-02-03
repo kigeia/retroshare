@@ -718,7 +718,7 @@ bool ChatWidget::setStyle()
 
 void ChatWidget::initSpeexProcessor() {
 
-        processor = new QtSpeex::SpeexProcessor(5, true);
+        processor = new QtSpeex::SpeexProcessor();
         processor->open(QIODevice::ReadWrite | QIODevice::Unbuffered);
 
         QAudioFormat fmt;
