@@ -770,6 +770,12 @@ RsChatMsgItem::RsChatMsgItem(void *data,uint32_t /*size*/,uint8_t subtype)
 
         /* get mandatory parts first */
         ok &= getRawUInt32(data, rssize, &offset,&audio_data_size);
+        if ((audio_data_size + offset) > rssize) {
+            audio_data_size = 0;
+            audio_data = NULL;
+            std::cerr << "Size error while deserializing audio data in new chat msg item." << std::endl ;
+            return;
+        }
 
         audio_data = new unsigned char[audio_data_size] ;
         if (audio_data)
