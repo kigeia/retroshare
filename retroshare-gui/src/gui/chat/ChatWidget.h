@@ -151,10 +151,10 @@ private:
 
 	bool firstShow;
 
-        QAudioInput* input;
-        QAudioOutput* output;
-        QtSpeex::SpeexProcessor* processor;
-        void initSpeexProcessor();
+        QAudioInput* inputDevice;
+        QAudioOutput* outputDevice;
+        QtSpeex::SpeexInputProcessor* inputProcessor;
+        QtSpeex::SpeexOutputProcessor* outputProcessor;
 
 	Ui::ChatWidget *ui;
 };

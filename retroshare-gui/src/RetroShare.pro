@@ -1,5 +1,5 @@
 CONFIG += qt gui uic qrc resources uitools idle bitdht # framecatcher# blogs
-QT     += network xml script  mobility multimediakit
+QT     += network xml script
 CONFIG += mobility
 MOBILITY = multimedia
 
@@ -268,6 +268,7 @@ HEADERS +=  rshare.h \
             util/log.h \
             util/misc.h \
             util/SpeexProcessor.h \
+            util/audiodevicehelper.h \
             gui/bwgraph/bwgraph.h \
             gui/profile/ProfileWidget.h \
             gui/profile/StatusMessage.h \
@@ -316,6 +317,8 @@ HEADERS +=  rshare.h \
             gui/settings/ChatPage.h \
             gui/settings/RelayPage.h \
             gui/settings/AddFileAssociationDialog.h \
+            gui/settings/AudioInputConfig.h \
+            gui/settings/AudioStats.h \
             gui/toaster/MessageToaster.h \
             gui/toaster/OnlineToaster.h \
             gui/toaster/DownloadToaster.h \
@@ -445,6 +448,7 @@ FORMS +=    gui/StartDialog.ui \
             gui/settings/ChatPage.ui \
             gui/settings/RelayPage.ui \
             gui/settings/PluginItem.ui \
+            gui/settings/AudioInputConfig.ui \
             gui/toaster/MessageToaster.ui \
             gui/toaster/OnlineToaster.ui \
             gui/toaster/DownloadToaster.ui \
@@ -540,6 +544,7 @@ SOURCES +=  main.cpp \
             util/log.cpp \
             util/misc.cpp \
             util/SpeexProcessor.cpp \
+            util/audiodevicehelper.cpp \
             gui/bwgraph/bwgraph.cpp \
             gui/profile/ProfileWidget.cpp \
             gui/profile/StatusMessage.cpp \
@@ -611,6 +616,8 @@ SOURCES +=  main.cpp \
             gui/settings/ChatPage.cpp \
             gui/settings/RelayPage.cpp \
             gui/settings/AddFileAssociationDialog.cpp \
+            gui/settings/AudioInputConfig.cpp \
+            gui/settings/AudioStats.cpp \
             gui/statusbar/peerstatus.cpp \
             gui/statusbar/natstatus.cpp \
             gui/statusbar/dhtstatus.cpp \

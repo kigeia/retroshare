@@ -41,6 +41,7 @@
 #include "gui/common/FilesDefs.h"
 #include "gui/common/Emoticons.h"
 #include "util/misc.h"
+#include "util/audiodevicehelper.h"
 
 #include <retroshare/rsstatus.h>
 #include <retroshare/rspeers.h>
@@ -123,20 +124,21 @@ ChatWidget::ChatWidget(QWidget *parent) :
 
         resetStatusBar();
 
-        processor = NULL;
-        output = NULL;
-        input = NULL;
+        outputProcessor = NULL;
+        outputDevice = NULL;
+        inputProcessor = NULL;
+        inputDevice = NULL;
 }
 
 ChatWidget::~ChatWidget()
 {
 	processSettings(false);
 
-        if (output) {
-            output->stop();
+        if (outputDevice) {
+            outputDevice->stop();
         }
-        if (input) {
-            input->stop();
+        if (inputDevice) {
+            inputDevice->stop();
         }
 
 	delete ui;
@@ -716,93 +718,32 @@ bool ChatWidget::setStyle()
 	return false;
 }
 
-void ChatWidget::initSpeexProcessor() {
-
-        processor = new QtSpeex::SpeexProcessor();
-        processor->open(QIODevice::ReadWrite | QIODevice::Unbuffered);
-
-        QAudioFormat fmt;
-        fmt.setFrequency(16000);
-        fmt.setChannels(1);
-        fmt.setSampleSize(16);
-        fmt.setSampleType(QAudioFormat::SignedInt);
-        fmt.setByteOrder(QAudioFormat::LittleEndian);
-        fmt.setCodec("audio/pcm");
-
-        QAudioDeviceInfo it, dev;
-
-        dev = QAudioDeviceInfo::defaultInputDevice();
-        if (dev.deviceName() != "pulse") {
-            foreach(it, QAudioDeviceInfo::availableDevices(QAudio::AudioInput)) {
-                std::cerr << "input" << it.deviceName().toStdString() << std::endl;
-                if(it.deviceName() == "pulse") {
-                        dev = it;
-                        qDebug("Ok.");
-                        break;
-                }
-            }
-        }
-        if (dev.deviceName() == "null") {
-            foreach(it, QAudioDeviceInfo::availableDevices(QAudio::AudioInput)) {
-                if(it.deviceName() != "null") {
-                        dev = it;
-                        break;
-                }
-            }
-        }
-        std::cerr << "input sound device : " << dev.deviceName().toStdString () << std::endl;
-
-        input = new QAudioInput(dev, fmt);
-
-        dev = QAudioDeviceInfo::defaultOutputDevice();
-        if (dev.deviceName() != "pulse") {
-            foreach(it, QAudioDeviceInfo::availableDevices(QAudio::AudioOutput)) {
-                    std::cerr << "output" << it.deviceName().toStdString() << std::endl;
-                    if(it.deviceName() == "pulse") {
-                            dev = it;
-                            break;
-                    }
-            }
-        }
-        if (dev.deviceName() == "null") {
-            foreach(it, QAudioDeviceInfo::availableDevices(QAudio::AudioOutput)) {
-                    if(it.deviceName() != "null") {
-                            dev = it;
-                            break;
-                    }
-            }
-        }
-        std::cerr << "output sound device : " << dev.deviceName().toStdString () << std::endl;
-
-        output = new QAudioOutput(dev, fmt);
-}
 
 void ChatWidget::toggleAudioListen() {
-    if (!processor)  {
-        initSpeexProcessor();
-    }
     if (ui->audioListenToggleButton->isChecked()) {
-        output->start(processor);
     } else {
         ui->audioListenToggleButton->setChecked(false);
-        output->stop();
+        if (outputDevice) {
+            outputDevice->stop();
+        }
     }
 }
 
 void ChatWidget::toggleAudioMuteCapture() {
-    if (!processor)  {
-        initSpeexProcessor();
+    if (!inputProcessor) {
+        inputProcessor = new QtSpeex::SpeexInputProcessor();
+        inputProcessor->open(QIODevice::WriteOnly | QIODevice::Unbuffered);
     }
-    if (!processor) {
-        return;
+    if (!inputDevice) {
+        inputDevice = AudioDeviceHelper::getPreferedInputDevice();
     }
     if (ui->audioMuteCaptureToggleButton->isChecked()) {
         ui->audioListenToggleButton->setChecked(true);
-        connect(processor, SIGNAL(networkPacketReady()), this, SLOT(sendAudioData()));
-        input->start(processor);
+        connect(inputProcessor, SIGNAL(networkPacketReady()), this, SLOT(sendAudioData()));
+        inputDevice->start(inputProcessor);
     } else {
-        disconnect(processor, SIGNAL(networkPacketReady()), this, SLOT(sendAudioData()));
-        input->stop();
+        disconnect(inputProcessor, SIGNAL(networkPacketReady()), this, SLOT(sendAudioData()));
+        inputDevice->stop();
     }
 
 }
@@ -827,29 +768,36 @@ void ChatWidget::addAudioData(QByteArray* array) {
         //TODO make a toaster and a sound for the call
         return;
     }
-    if (!processor) {
-        initSpeexProcessor();
+    if (!outputProcessor) {
+        outputProcessor = new QtSpeex::SpeexOutputProcessor();
+        outputProcessor->open(QIODevice::ReadOnly | QIODevice::Unbuffered);
+        if (!outputDevice) {
+            outputDevice = AudioDeviceHelper::getDefaultOutputDevice();
+        }
+        outputDevice->start(outputProcessor);
     }
-    if (output && output->error() != QAudio::NoError) {
-        std::cerr << "Restarting output device. Error before reset " << output->error() << " buffer size : " << output->bufferSize() << std::endl;
-        output->stop();
-        output->reset();
-        if (output->error() == QAudio::UnderrunError)
-            output->setBufferSize(20);
-        output->start(processor);
+    if (outputDevice && outputDevice->error() != QAudio::NoError) {
+        std::cerr << "Restarting output device. Error before reset " << outputDevice->error() << " buffer size : " << outputDevice->bufferSize() << std::endl;
+        outputDevice->stop();
+        outputDevice->reset();
+        if (outputDevice->error() == QAudio::UnderrunError)
+            outputDevice->setBufferSize(20);
+        outputDevice->start(outputProcessor);
     }
-    if (input && input->error() != QAudio::NoError) {
-        std::cerr << "Restarting input device. Error before reset " << input->error() << std::endl;
-        input->stop();
-        input->reset();
-        input->start(processor);
+    outputProcessor->putNetworkPacket(*array);
+
+    //check the input device for errors
+    if (inputDevice && inputDevice->error() != QAudio::NoError) {
+        std::cerr << "Restarting input device. Error before reset " << inputDevice->error() << std::endl;
+        inputDevice->stop();
+        inputDevice->reset();
+        inputDevice->start(inputProcessor);
     }
-    processor->putNetworkPacket(*array);
 }
 
 void ChatWidget::sendAudioData() {
-    while(processor->hasPendingPackets()) {
-        QByteArray qbarray = processor->getNetworkPacket();
+    while(inputProcessor->hasPendingPackets()) {
+        QByteArray qbarray = inputProcessor->getNetworkPacket();
         if (qbarray != NULL) {
             std::wstring s2 ( L"" );
             char * buff = new char[qbarray.size()];

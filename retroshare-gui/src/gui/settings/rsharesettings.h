@@ -85,6 +85,9 @@ public:
     MSG_OPEN_WINDOW
   };
 
+  enum enumAudioTransmit { AudioTransmitNotSet, AudioTransmitContinous, AudioTransmitVAD, AudioTransmitPushToTalk };
+  enum enumVADSource { VADSourceNotSet, VADSourceAmplitude, VADSourceSignalToNoise };
+
 public:
   /* create settings object */
   static void Create(bool forceCreateNew = false);
@@ -235,6 +238,22 @@ public:
   uint getMaxTimeBeforeIdle();
   void setMaxTimeBeforeIdle(uint nValue);
 
+  /* voip */
+  int getVoipiMinLoudness();
+  void setVoipiMinLoudness(int iValue);
+  int getVoipiNoiseSuppress();
+  void setVoipiNoiseSuppress(int iValue);
+  enumVADSource getVoipVoiceActivityD();
+  void setVoipVoiceActivityD(enumVADSource vad);
+  float getVoipfVADmax();
+  void setVoipfVADmax(float fValue);
+  float getVoipfVADmin();
+  void setVoipfVADmin(float fValue);
+    enumAudioTransmit getVoipATransmit();
+    void setVoipATransmit(enumAudioTransmit atransmit);
+    int getVoiceHold();
+    void setVoiceHold(int iValue);
+
 protected:
   /** Default constructor. */
   RshareSettings();
@@ -243,6 +262,15 @@ protected:
 
   /* member for fast access */
   int m_maxTimeBeforeIdle;
+
+  int m_VoipiMinLoudness;
+  int m_VoipiNoiseSuppress;
+  enumVADSource m_VoipVoiceActivityD;
+  float m_VoipfVADmax;
+  float m_VoipfVADmin;
+  enumAudioTransmit m_VoipATransmit;
+  int m_VoiceHold;
+
 };
 
 // the one and only global settings object

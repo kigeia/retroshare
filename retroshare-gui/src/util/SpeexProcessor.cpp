@@ -7,30 +7,30 @@
 #include <iostream>
 #include <fstream>
 #include <fcntl.h>
+#include <math.h>
+#include <cstdlib>
+
+#include "gui/settings/rsharesettings.h"
+
+#define iroundf(x) ( static_cast<int>(x) )
 
 using namespace QtSpeex;
 
-SpeexProcessor::SpeexProcessor(QObject *parent) : QIODevice(parent),
+SpeexInputProcessor::SpeexInputProcessor(QObject *parent) : QIODevice(parent),
     preprocessor(0),
     enc_state(0),
     enc_bits(),
     send_timestamp(0),
     echo_state(0),
-    dec_state(0),
-    dec_bits(),
-
-    jitter(),
-    mostUpdatedTSatPut(0),
-    firsttimecalling_get(true),
     inputBuffer(),
-    outputBuffer()
+    iMaxBitRate(32000),
+    bResetProcessor(true)
 {
         for (int i=0; i<FRAME_SIZE; i++)
                 pcm[i] = 0;
-        enc_bits = new SpeexBits;
+
+        /*enc_bits = new SpeexBits;
         speex_bits_init(enc_bits);
-        dec_bits = new SpeexBits;
-        speex_bits_init(dec_bits);
 
         enc_state = speex_encoder_init(&speex_wb_mode);
         int tmp = 8;
@@ -44,13 +44,7 @@ SpeexProcessor::SpeexProcessor(QObject *parent) : QIODevice(parent),
         speex_encoder_ctl(enc_state, SPEEX_SET_VBR, &on);// VBR = Variable Bit rate
         float VBRQuality = 8.0; // VBR = Variable Bit rate
         speex_encoder_ctl(enc_state, SPEEX_SET_VBR_QUALITY, &VBRQuality);
-        int VBRBitRate = 1024 * 8 * 5 / 2; // VBR = Variable Bit rate 2,5 kb/s
-        speex_encoder_ctl(enc_state, SPEEX_SET_VBR_MAX_BITRATE, &VBRBitRate);
-
-        dec_state = speex_decoder_init(&speex_wb_mode);
-        speex_decoder_ctl(dec_state, SPEEX_SET_ENH, &on);// Set the perceptual enhancement
-        speex_jitter_init(&jitter, dec_state, SAMPLING_RATE);
-
+        speex_encoder_ctl(enc_state, SPEEX_SET_VBR_MAX_BITRATE, &iMaxBitRate);
 
         preprocessor = speex_preprocess_state_init(FRAME_SIZE, SAMPLING_RATE);
         speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_AGC, &on);
@@ -65,45 +59,95 @@ SpeexProcessor::SpeexProcessor(QObject *parent) : QIODevice(parent),
         tmp = SAMPLING_RATE;
         speex_echo_ctl(echo_state, SPEEX_ECHO_SET_SAMPLING_RATE, &tmp);
         speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_ECHO_STATE, echo_state);
-}
+        */
 
-SpeexProcessor::~SpeexProcessor() {
+
+
+        speex_bits_init(enc_bits);
+        speex_bits_reset(enc_bits);
+        enc_state = speex_encoder_init(&speex_wb_mode);
+
+        int iArg=1;
+        speex_encoder_ctl(enc_state,SPEEX_SET_VBR, &iArg);
+
+        iArg = 0;
+        speex_encoder_ctl(enc_state,SPEEX_SET_VAD, &iArg);
+        speex_encoder_ctl(enc_state,SPEEX_SET_DTX, &iArg);
+
+        float fArg=8.0;
+        speex_encoder_ctl(enc_state,SPEEX_SET_VBR_QUALITY, &fArg);
+
+        iArg = iMaxBitRate;
+        speex_encoder_ctl(enc_state, SPEEX_SET_VBR_MAX_BITRATE, &iArg);
+
+        iArg = 5;
+        speex_encoder_ctl(enc_state,SPEEX_SET_COMPLEXITY, &iArg);
+
+
+        /*echo_state = speex_echo_state_init(FRAME_SIZE, ECHOTAILSIZE*FRAME_SIZE);
+        iArg = SAMPLING_RATE;
+        speex_echo_ctl(echo_state, SPEEX_ECHO_SET_SAMPLING_RATE, &iArg);
+        speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_ECHO_STATE, echo_state);*/
+
+
+        //iEchoFreq = iMicFreq = iSampleRate;
+
+        iFrameCounter = 0;
+        iSilentFrames = 0;
+        iHoldFrames = 0;
+
+        bResetProcessor = true;
+
+        //bEchoMulti = false;
+
+        preprocessor = NULL;
+        echo_state = NULL;
+        //srsMic = srsEcho = NULL;
+        //iJitterSeq = 0;
+        //iMinBuffered = 1000;
+
+        //psMic = new short[iFrameSize];
+        //psClean = new short[iFrameSize];
+
+        //psSpeaker = NULL;
+
+        //iEchoChannels = iMicChannels = 0;
+        //iEchoFilled = iMicFilled = 0;
+        //eMicFormat = eEchoFormat = SampleFloat;
+        //iMicSampleSize = iEchoSampleSize = 0;
+
+        bPreviousVoice = false;
+
+        //pfMicInput = pfEchoInput = pfOutput = NULL;
+
+        iRealTimeBitrate = 0;
+        dPeakSignal = dPeakSpeaker = dPeakMic = dPeakCleanMic = 0.0;
+
+        //if (g.uiSession) {
+        //TODO : get the maxbitrate from a rs service or a dynamic code
+        iMaxBitRate = 32000;
+        //}
+
+        //bRunning = true;
+    }
+
+SpeexInputProcessor::~SpeexInputProcessor() {
         speex_preprocess_state_destroy(preprocessor);
         speex_echo_state_destroy(echo_state);
 
-	speex_encoder_destroy(enc_state);
-	speex_decoder_destroy(dec_state);
+        speex_encoder_destroy(enc_state);
 
-        speex_jitter_destroy();
 
         speex_bits_destroy(enc_bits);
-        speex_bits_destroy(dec_bits);
         delete enc_bits;
-        delete dec_bits;
 }
 
-void SpeexProcessor::putNetworkPacket(QByteArray packet) {
-    //buffer:
-    //  encodedBufSize + 4 | timestamp | encodedBuf
-    // ——————–———–——————–———–——————–———–——————–———–——————–
-    //  4                  |  4        | encodedBufSize – 4
-    //the size part (first 4 byets) is not actually used in the logic
-    if (packet.size() > 8)
-    {
-        int recv_timestamp = ((int*)packet.data())[1];
-        mostUpdatedTSatPut = recv_timestamp;
-        if (firsttimecalling_get)
-            return;
-        speex_jitter_put((char *)packet.data()+8, packet.size()-8, recv_timestamp);
-    }
+QByteArray SpeexInputProcessor::getNetworkPacket() {
+        return outputNetworkBuffer.takeFirst();
 }
 
-QByteArray SpeexProcessor::getNetworkPacket() {
-	return outputNetworkBuffer.takeFirst();
-}
-
-bool SpeexProcessor::hasPendingPackets() {
-	return !outputNetworkBuffer.empty();
+bool SpeexInputProcessor::hasPendingPackets() {
+        return !outputNetworkBuffer.empty();
 }
 
 //make it quiet because it spams too much the standard ouptut and error
@@ -117,28 +161,192 @@ void quiet_speex_echo_capture (SpeexEchoState *st, const spx_int16_t *rec, spx_i
     close(orig_fd);
 }
 
-qint64 SpeexProcessor::writeData(const char *data, qint64 maxSize) {
+qint64 SpeexInputProcessor::writeData(const char *data, qint64 maxSize) {
+        int iArg;
+        int i;
+        float sum;
+        short max;
+
         inputBuffer += QByteArray(data, maxSize);
 
         while(inputBuffer.size() > FRAME_SIZE * sizeof(qint16)) {
-                QByteArray frame = inputBuffer.left(FRAME_SIZE * sizeof(qint16)+8);//add 4 for the frame timestamp for the jitter buffer and the packet size
+                QByteArray source_frame = inputBuffer.left(FRAME_SIZE * sizeof(qint16));
 
-                quiet_speex_echo_capture(echo_state, (qint16*) frame.data(), pcm);
-                bool isSpeech = speex_preprocess_run(preprocessor, pcm);
+                //quiet_speex_echo_capture(echo_state, (qint16*) source_frame.data(), pcm);
 
-                speex_bits_reset(enc_bits);
-                int needTransmit = speex_encode_int(enc_state, pcm, enc_bits);
-                if (isSpeech && needTransmit) {
+                //let's do volume detection
+                iFrameCounter++;
+                sum=1.0f;
+                for (i=0;i<FRAME_SIZE;i++)
+                        sum += static_cast<float>(source_frame.data()[i] * source_frame.data()[i]);
+                dPeakMic = qMax(20.0f*log10f(sqrtf(sum / static_cast<float>(FRAME_SIZE)) / 32768.0f), -96.0f);
+
+                max = 1;
+                for (i=0;i<FRAME_SIZE;i++)
+                        max = static_cast<short>(std::abs(source_frame.data()[i]) > max ? std::abs(source_frame.data()[i]) : max);
+                dMaxMic = max;
+
+                dPeakSpeaker = 0.0;
+
+                QMutexLocker l(&qmSpeex);
+
+                if (bResetProcessor) {
+                        if (preprocessor)
+                                speex_preprocess_state_destroy(preprocessor);
+                        if (echo_state)
+                                speex_echo_state_destroy(echo_state);
+
+                        preprocessor = speex_preprocess_state_init(FRAME_SIZE, SAMPLING_RATE);
+
+                        iArg = 1;
+                        speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_VAD, &iArg);
+                        speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_AGC, &iArg);
+                        speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_DENOISE, &iArg);
+                        speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_DEREVERB, &iArg);
+
+                        iArg = 30000;
+                        speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_AGC_TARGET, &iArg);
+
+                        float v = 30000.0f / static_cast<float>(Settings->getVoipiMinLoudness());
+                        iArg = iroundf(floorf(20.0f * log10f(v)));
+                        speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_AGC_MAX_GAIN, &iArg);
+
+                        iArg = -60;
+                        speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_AGC_DECREMENT, &iArg);
+
+                        iArg = Settings->getVoipiNoiseSuppress();
+                        speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_NOISE_SUPPRESS, &iArg);
+
+                        /*if (iEchoChannels > 0) {
+                                sesEcho = speex_echo_state_init_mc(iFrameSize, iFrameSize*10, 1, bEchoMulti ? iEchoChannels : 1);
+                                iArg = iSampleRate;
+                                speex_echo_ctl(sesEcho, SPEEX_ECHO_SET_SAMPLING_RATE, &iArg);
+                                speex_preprocess_ctl(sppPreprocess, SPEEX_PREPROCESS_SET_ECHO_STATE, sesEcho);
+
+                                qWarning("AudioInput: ECHO CANCELLER ACTIVE");
+                        } else {
+                                sesEcho = NULL;
+                        }*/
+
+                        bResetProcessor = false;
+                }
+
+                speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_GET_AGC_GAIN, &iArg);
+                float gainValue = static_cast<float>(iArg);
+                iArg = Settings->getVoipiNoiseSuppress() - iArg;
+                speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_NOISE_SUPPRESS, &iArg);
+
+                /*if (sesEcho && psSpeaker) {
+                        speex_echo_cancellation(sesEcho, psMic, psSpeaker, psClean);
+                        speex_preprocess_run(sppPreprocess, psClean);
+                        psSource = psClean;
+                } else {*/
+                        speex_preprocess_run(preprocessor, (short int*)source_frame.data());
+                        short * psSource = (short int*)source_frame.data();
+                //}
+                //we will now analize the processed signal
+                sum=1.0f;
+                for (i=0;i<FRAME_SIZE;i++)
+                        sum += static_cast<float>(psSource[i] * psSource[i]);
+                float micLevel = sqrtf(sum / static_cast<float>(FRAME_SIZE));
+                dPeakSignal = qMax(20.0f*log10f(micLevel / 32768.0f), -96.0f);
+
+                spx_int32_t prob = 0;
+                speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_GET_PROB, &prob);//speech probability
+                fSpeechProb = static_cast<float>(prob) / 100.0f;
+
+                // clean microphone level: peak of filtered signal attenuated by AGC gain
+                dPeakCleanMic = qMax(dPeakSignal - gainValue, -96.0f);
+                float level = (Settings->getVoipVoiceActivityD() == RshareSettings::VADSourceSignalToNoise) ? fSpeechProb : (1.0f + dPeakCleanMic / 96.0f);
+
+                bool bIsSpeech = false;
+
+                if (level > Settings->getVoipfVADmax())
+                        bIsSpeech = true;
+                else if (level > Settings->getVoipfVADmin() && bPreviousVoice)
+                        bIsSpeech = true;
+
+                if (! bIsSpeech) {
+                        iHoldFrames++;
+                        if (iHoldFrames < Settings->getVoiceHold())
+                                bIsSpeech = true;
+                } else {
+                        iHoldFrames = 0;
+                }
+
+
+                if (Settings->getVoipATransmit() == RshareSettings::AudioTransmitContinous)
+                        bIsSpeech = true;
+                else if (Settings->getVoipATransmit() == RshareSettings::AudioTransmitPushToTalk)
+                        bIsSpeech = false;//g.s.uiDoublePush && ((g.uiDoublePush < g.s.uiDoublePush) || (g.tDoublePush.elapsed() < g.s.uiDoublePush));
+
+                //bIsSpeech = bIsSpeech || (g.iPushToTalk > 0);
+
+                /*if (g.s.bMute || ((g.s.lmLoopMode != Settings::Local) && p && (p->bMute || p->bSuppress)) || g.bPushToMute || (g.iTarget < 0)) {
+                        bIsSpeech = false;
+                }*/
+
+                if (bIsSpeech) {
+                        iSilentFrames = 0;
+                } else {
+                        iSilentFrames++;
+                        if (iSilentFrames > 500)
+                                iFrameCounter = 0;
+                }
+
+                /*if (p) {
+                        if (! bIsSpeech)
+                                p->setTalking(Settings::Passive);
+                        else if (g.iTarget == 0)
+                                p->setTalking(Settings::Talking);
+                        else
+                                p->setTalking(Settings::Shouting);
+                }*/
+
+
+                if (! bIsSpeech && ! bPreviousVoice) {
+                        iRealTimeBitrate = 0;
+                        /*if (g.s.iIdleTime && ! g.s.bDeaf && ((tIdle.elapsed() / 1000000ULL) > g.s.iIdleTime)) {
+                                emit doDeaf();
+                                tIdle.restart();
+                        }*/
+                        spx_int32_t increment = 0;
+                        speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_AGC_INCREMENT, &increment);
+                        continue;
+                } else {
+                        spx_int32_t increment = 12;
+                        speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_AGC_INCREMENT, &increment);
+                }
+
+                unsigned char buffer[512];
+                int len;
+
+                int vbr = 0;
+                speex_encoder_ctl(enc_state, SPEEX_GET_VBR_MAX_BITRATE, &vbr);
+                if (vbr != iMaxBitRate) {
+                        vbr = iMaxBitRate;
+                        speex_encoder_ctl(enc_state, SPEEX_SET_VBR_MAX_BITRATE, &vbr);
+                }
+
+                if (! bPreviousVoice)
+                        speex_encoder_ctl(enc_state, SPEEX_RESET_STATE, NULL);
+
+                int needTransmit = speex_encode_int(enc_state, psSource, enc_bits);
+                if (bIsSpeech && needTransmit) {
                     QByteArray networkFrame;
-                    networkFrame.resize(speex_bits_nbytes(enc_bits));
-                    int packetSize = speex_bits_write(enc_bits, networkFrame.data()+8, networkFrame.size()-8);
+                    networkFrame.resize(speex_bits_nbytes(enc_bits)+4);//add 4 for the frame timestamp for the jitter buffer and 4 for the packet size
+                    int packetSize = speex_bits_write(enc_bits, networkFrame.data()+4, networkFrame.size()-4);
 
-                    ((int*)networkFrame.data())[0] = packetSize+4;
-                    ((int*)networkFrame.data())[1] = send_timestamp;
+                    ((int*)networkFrame.data())[0] = send_timestamp;
 
                     outputNetworkBuffer.append(networkFrame);
                     emit networkPacketReady();
+
+                    iRealTimeBitrate = packetSize * 16000 / 320 * 8;
+                } else {
+                    iRealTimeBitrate = 0;
                 }
+
                 send_timestamp += FRAME_SIZE;
                 if (send_timestamp >= INT_MAX)
                     send_timestamp = 0;
@@ -147,6 +355,52 @@ qint64 SpeexProcessor::writeData(const char *data, qint64 maxSize) {
 	}
 
 	return maxSize;
+}
+
+
+SpeexOutputProcessor::SpeexOutputProcessor(QObject *parent) : QIODevice(parent),
+    dec_state(0),
+    dec_bits(),
+    echo_state(0),
+    outputBuffer()
+{
+        dec_bits = new SpeexBits;
+        speex_bits_init(dec_bits);
+
+
+        echo_state = speex_echo_state_init(FRAME_SIZE, ECHOTAILSIZE*FRAME_SIZE);
+        int tmp = SAMPLING_RATE;
+        speex_echo_ctl(echo_state, SPEEX_ECHO_SET_SAMPLING_RATE, &tmp);
+}
+
+SpeexOutputProcessor::~SpeexOutputProcessor() {
+        speex_echo_state_destroy(echo_state);
+
+        speex_decoder_destroy(dec_state);
+
+
+        speex_bits_destroy(dec_bits);
+        delete dec_bits;
+}
+
+void SpeexOutputProcessor::putNetworkPacket(QByteArray packet) {
+    //buffer:
+    //  timestamp | encodedBuf
+    // —————–———–——————–———–——————–———–——————–
+    //    4       | totalSize – 4
+    //the size part (first 4 byets) is not actually used in the logic
+    if (packet.size() > 4)
+    {
+        int recv_timestamp = ((int*)packet.data())[0];
+        mostUpdatedTSatPut = recv_timestamp;
+        if (firsttimecalling_get)
+            return;
+        speex_jitter_put((char *)packet.data()+4, packet.size()-4, recv_timestamp);
+    }
+}
+
+bool SpeexInputProcessor::isSequential() const {
+        return true;
 }
 
 //make it quiet because it spams too much the standard error
@@ -160,7 +414,7 @@ void quiet_speex_echo_playback (SpeexEchoState *st, const spx_int16_t *play) {
     close(orig_fd);
 }
 
-qint64 SpeexProcessor::readData(char *data, qint64 maxSize) {
+qint64 SpeexOutputProcessor::readData(char *data, qint64 maxSize) {
     int ts = 0; //time stamp for the jitter call
     if (firsttimecalling_get)
     {
@@ -184,11 +438,11 @@ qint64 SpeexProcessor::readData(char *data, qint64 maxSize) {
     return resultBuffer.size();
 }
 
-bool SpeexProcessor::isSequential() const {
-	return true;
+bool SpeexOutputProcessor::isSequential() const {
+        return true;
 }
 
-void SpeexProcessor::speex_jitter_init(SpeexJitter *jit, void *decoder, int sampling_rate)
+void SpeexOutputProcessor::speex_jitter_init(SpeexJitter *jit, void *decoder, int sampling_rate)
 {
    jit->dec = decoder;
    speex_decoder_ctl(decoder, SPEEX_GET_FRAME_SIZE, &jit->frame_size);
@@ -199,13 +453,13 @@ void SpeexProcessor::speex_jitter_init(SpeexJitter *jit, void *decoder, int samp
    jit->valid_bits = 0;
 }
 
-void SpeexProcessor::speex_jitter_destroy()
+void SpeexOutputProcessor::speex_jitter_destroy()
 {
    jitter_buffer_destroy(jitter.packets);
    speex_bits_destroy(jitter.current_packet);
 }
 
-void SpeexProcessor::speex_jitter_put(char *packet, int len, int timestamp)
+void SpeexOutputProcessor::speex_jitter_put(char *packet, int len, int timestamp)
 {
    JitterBufferPacket p;
    p.data = packet;
@@ -215,17 +469,15 @@ void SpeexProcessor::speex_jitter_put(char *packet, int len, int timestamp)
    jitter_buffer_put(jitter.packets, &p);
 }
 
-void SpeexProcessor::speex_jitter_get(spx_int16_t *out, int *current_timestamp)
+void SpeexOutputProcessor::speex_jitter_get(spx_int16_t *out, int *current_timestamp)
 {
    int i;
    int ret;
    spx_int32_t activity;
    int bufferCount = 0;
    JitterBufferPacket packet;
-   //char data[40960];
-   //packet.data = data;
-   //packet.len = 40960;
-   packet.data = reinterpret_cast<char *>(psSpeaker);
+   char data[320 * ECHOTAILSIZE * 10];
+   packet.data = data;
    packet.len = 320 * ECHOTAILSIZE * 10;
 
    if (jitter.valid_bits)
@@ -274,7 +526,7 @@ void SpeexProcessor::speex_jitter_get(spx_int16_t *out, int *current_timestamp)
    //debugPrint(msg);
 }
 
-int SpeexProcessor::speex_jitter_get_pointer_timestamp()
+int SpeexOutputProcessor::speex_jitter_get_pointer_timestamp()
 {
    return jitter_buffer_get_pointer_timestamp(jitter.packets);
 }

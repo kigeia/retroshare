@@ -92,6 +92,13 @@ RshareSettings *Settings = NULL;
 RshareSettings::RshareSettings()
 {
     m_maxTimeBeforeIdle = -1;
+    m_VoiceHold = -1;
+    m_VoipATransmit = RshareSettings::AudioTransmitNotSet;
+    m_VoipfVADmax = -1;
+    m_VoipfVADmin = -1;
+    m_VoipiMinLoudness = -1;
+    m_VoipiNoiseSuppress = -1;
+    m_VoipVoiceActivityD = RshareSettings::VADSourceNotSet;
 
     initSettings();
 }
@@ -714,8 +721,118 @@ uint RshareSettings::getMaxTimeBeforeIdle()
     return m_maxTimeBeforeIdle;
 }
 
+
 void RshareSettings::setMaxTimeBeforeIdle(uint nValue)
 {
     m_maxTimeBeforeIdle = nValue;
     setValue("maxTimeBeforeIdle", nValue);
+}
+
+
+int RshareSettings::getVoipiMinLoudness()
+{
+    if (m_VoipiMinLoudness == -1) {
+        m_VoipiMinLoudness = value("VoipiMinLoudness", 0).toInt();
+    }
+
+    return m_VoipiMinLoudness;
+}
+
+void RshareSettings::setVoipiMinLoudness(int iValue)
+{
+    m_VoipiMinLoudness = iValue;
+    setValue("VoipiMinLoudness", iValue);
+}
+
+int RshareSettings::getVoipiNoiseSuppress()
+{
+    if (m_VoipiNoiseSuppress == -1) {
+        m_VoipiNoiseSuppress = value("VoipiNoiseSuppress", 0).toInt();
+    }
+
+    return m_VoipiNoiseSuppress;
+}
+
+void RshareSettings::setVoipiNoiseSuppress(int iValue)
+{
+    m_VoipiNoiseSuppress = iValue;
+    setValue("VoipiNoiseSuppress", iValue);
+}
+
+RshareSettings::enumVADSource RshareSettings::getVoipVoiceActivityD()
+{
+    if (m_VoipVoiceActivityD == RshareSettings::VADSourceNotSet) {
+        m_VoipVoiceActivityD = (enumVADSource) value("VoipVoiceActivityD", 0).toInt();
+    }
+
+    return m_VoipVoiceActivityD;
+}
+
+void RshareSettings::setVoipVoiceActivityD(RshareSettings::enumVADSource eValue)
+{
+    m_VoipVoiceActivityD = eValue;
+    setValue("VoipVoiceActivityD", eValue);
+}
+
+
+float RshareSettings::getVoipfVADmax()
+{
+    if (m_VoipfVADmax == -1) {
+        m_VoipfVADmax = value("VoipfVADmax", 0).toFloat();
+    }
+
+    return m_VoipVoiceActivityD;
+}
+
+void RshareSettings::setVoipfVADmax(float fValue)
+{
+    m_VoipfVADmax = fValue;
+    setValue("VoipfVADmax", fValue);
+}
+
+float RshareSettings::getVoipfVADmin()
+{
+    if (m_VoipfVADmin == -1) {
+        m_VoipfVADmin = value("VoipfVADmin", 0).toFloat();
+    }
+
+    return m_VoipVoiceActivityD;
+}
+
+void RshareSettings::setVoipfVADmin(float fValue)
+{
+    m_VoipfVADmin = fValue;
+    setValue("VoipfVADmin", fValue);
+}
+
+
+RshareSettings::enumAudioTransmit RshareSettings::getVoipATransmit()
+{
+    if (m_VoipATransmit == RshareSettings::AudioTransmitNotSet) {
+        m_VoipATransmit = (enumAudioTransmit)value("VoipATransmit", 0).toInt();
+    }
+
+    return m_VoipATransmit;
+}
+
+void RshareSettings::setVoipATransmit(RshareSettings::enumAudioTransmit eValue)
+{
+    m_VoipATransmit = eValue;
+    setValue("VoipATransmit", eValue);
+}
+
+
+int RshareSettings::getVoiceHold()
+{
+    if (m_VoiceHold == -1) {
+        m_VoiceHold = value("VoiceHold", 0).toInt();
+    }
+
+    return m_VoiceHold;
+}
+
+void RshareSettings::setVoiceHold(int iValue)
+{
+    m_VoiceHold = iValue;
+    setValue("VoiceHold", iValue);
 }

@@ -11,6 +11,7 @@
 #include <QIODevice>
 #include <QByteArray>
 #include <QList>
+#include <QMutex>
 
 #include <speex/speex_preprocess.h>
 #include <speex/speex_echo.h>
@@ -32,42 +33,77 @@ typedef struct SpeexJitter {
 } SpeexJitter;
 
 namespace QtSpeex {
-	class SpeexProcessor : public QIODevice {
+        class SpeexInputProcessor : public QIODevice {
 		Q_OBJECT
 
 	public:
-                SpeexProcessor(QObject* parent = 0);
-		virtual ~SpeexProcessor();
+                float dPeakSpeaker, dPeakSignal, dMaxMic, dPeakMic, dPeakCleanMic;
+                float fSpeechProb;
+                SpeexInputProcessor(QObject* parent = 0);
+                virtual ~SpeexInputProcessor();
 
 		bool hasPendingPackets();
-		QByteArray getNetworkPacket();
+                QByteArray getNetworkPacket();
 
-		void putNetworkPacket(QByteArray packet);
+                int iMaxBitRate;
+                int iRealTimeBitrate;
 
 	signals:
 		void networkPacketReady();
 
 	protected:
-		virtual qint64 readData(char *data, qint64 maxSize);
+                virtual qint64 readData(char *data, qint64 maxSize) {} //not used for input processor
 		virtual qint64 writeData(const char *data, qint64 maxSize);
-		virtual bool isSequential() const;
+                virtual bool isSequential() const;
+                volatile bool bPreviousVoice;
 
-	private:
-		void* enc_state;
-                void* dec_state;
+        private:
+                int iFrameCounter;
+                int iSilentFrames;
+                int iHoldFrames;
+
+                QMutex qmSpeex;
+                void* enc_state;
                 SpeexBits* enc_bits;
-                SpeexBits* dec_bits;
                 int send_timestamp; //set at the encode time for the jitter buffer of the reciever
-                int  mostUpdatedTSatPut; //use for the decoder jitter
-                bool firsttimecalling_get;
+
+                bool bResetProcessor;
 
                 SpeexPreprocessState* preprocessor;
                 SpeexEchoState       *echo_state;
 
-                short psSpeaker[320 * ECHOTAILSIZE * 10];//use for echo cancelation (speaker output). may not be usefull if using speex_echo_capture instead of speex_echo_cancellation
+                QByteArray inputBuffer;
+                QList<QByteArray> outputNetworkBuffer;
+
+                short                 pcm[FRAME_SIZE], pcm2[FRAME_SIZE];//buffer for encoding internals
+        };
+
+
+        class SpeexOutputProcessor : public QIODevice {
+                Q_OBJECT
+
+        public:
+                SpeexOutputProcessor(QObject* parent = 0);
+                virtual ~SpeexOutputProcessor();
+
+                void putNetworkPacket(QByteArray packet);
+
+        protected:
+                virtual qint64 readData(char *data, qint64 maxSize);
+                virtual qint64 writeData(const char *data, qint64 maxSize) {} //not used for output processor
+                virtual bool isSequential() const;
+
+        private:
+                void* dec_state;
+                SpeexBits* dec_bits;
+                int  mostUpdatedTSatPut; //use for the decoder jitter
+                bool firsttimecalling_get;
+
+                SpeexEchoState       *echo_state;
+
                 JitterBuffer *jitterBuffer ;
-                QByteArray inputBuffer, outputBuffer;
-		QList<QByteArray> inputNetworkBuffer, outputNetworkBuffer;
+                QByteArray outputBuffer;
+                QList<QByteArray> inputNetworkBuffer;
 
                 SpeexJitter jitter;
 
@@ -76,10 +112,9 @@ namespace QtSpeex {
                 void speex_jitter_put(char *packet, int len, int timestamp);
                 void speex_jitter_get(spx_int16_t *out, int *current_timestamp);
                 int speex_jitter_get_pointer_timestamp();
-                short                 pcm[FRAME_SIZE], pcm2[FRAME_SIZE];//buffer for encoding internals
                 short                 dec_pcm[FRAME_SIZE];//buffer for dec internals
                 short                 ps[FRAME_SIZE];//buffer for dec internals
         };
-}
+    }
 
 #endif // SPEEXPROCESSOR_H
