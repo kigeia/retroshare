@@ -59,19 +59,16 @@ class AudioInputConfig : public ConfigPage {
                 /** Default Destructor */
                 ~AudioInputConfig() {}
 
-                virtual QString title() const;
                 bool save(QString &errmsg);
                 void load();
 
         public slots:
                 void loadSettings();
-		void continuePlayback();
 
                 void on_qsTransmitHold_valueChanged(int v);
                 void on_qsAmp_valueChanged(int v);
                 void on_qsNoise_valueChanged(int v);
-		void on_qcbTransmit_currentIndexChanged(int v);
-                void on_qcbSystem_currentIndexChanged(int);
+                void on_qcbTransmit_currentIndexChanged(int v);
                 void on_Tick_timeout();
 };
 

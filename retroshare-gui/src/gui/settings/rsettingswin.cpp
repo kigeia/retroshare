@@ -36,6 +36,7 @@
 #include "MessagePage.h"
 #include "ForumPage.h"
 #include "PluginsPage.h"
+#include "AudioInputConfig.h"
 
 #define IMAGE_GENERAL       ":/images/kcmsystem24.png"
 
@@ -116,6 +117,7 @@ RSettingsWin::initStackedWidget()
     stackedWidget->addWidget(new MessagePage());
     stackedWidget->addWidget(new ForumPage());
     stackedWidget->addWidget(new ChatPage());
+    stackedWidget->addWidget(new AudioInputConfig());
     stackedWidget->addWidget(new AppearancePage());
     stackedWidget->addWidget(new SoundPage() );
 
@@ -171,6 +173,10 @@ RSettingsWin::setNewPage(int page)
             break;
         case Chat:
             text = tr("Chat");
+            pageicon->setPixmap(QPixmap(":/images/connect/talking_on.svg"));
+            break;
+        case Voip:
+            text = tr("Voip");
             pageicon->setPixmap(QPixmap(":/images/chat_24.png"));
             break;
         case Appearance:

@@ -181,6 +181,15 @@
      </item>
      <item>
       <property name="text">
+       <string>Voip</string>
+      </property>
+      <property name="icon">
+       <iconset resource="../images.qrc">
+        <normaloff>:/images/connect/talking_on.svg</normaloff>:/images/connect/talking_on.svg</iconset>
+      </property>
+     </item>
+     <item>
+      <property name="text">
        <string>Appearance</string>
       </property>
       <property name="icon">

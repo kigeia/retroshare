@@ -83,8 +83,9 @@ AudioInputConfig::load()
     abSpeech->qcBelow = Qt::red;
     abSpeech->qcInside = Qt::yellow;
     abSpeech->qcAbove = Qt::green;
+    abSpeech->setGeometry(9,20,50,10);
 
-    //ui.qwVAD->
+    ((QGridLayout*)ui.qwVAD)->addWidget(abSpeech,1,0);
 
     ui.qcbDevice->view()->setTextElideMode(Qt::ElideRight);
 
