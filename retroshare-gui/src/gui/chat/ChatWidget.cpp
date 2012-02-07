@@ -730,20 +730,25 @@ void ChatWidget::toggleAudioListen() {
 }
 
 void ChatWidget::toggleAudioMuteCapture() {
-    if (!inputProcessor) {
-        inputProcessor = new QtSpeex::SpeexInputProcessor();
-        inputProcessor->open(QIODevice::WriteOnly | QIODevice::Unbuffered);
-    }
-    if (!inputDevice) {
-        inputDevice = AudioDeviceHelper::getPreferedInputDevice();
-    }
     if (ui->audioMuteCaptureToggleButton->isChecked()) {
+        //activate audio output
         ui->audioListenToggleButton->setChecked(true);
+
+        //activate audio input
+        if (!inputProcessor) {
+            inputProcessor = new QtSpeex::SpeexInputProcessor();
+            inputProcessor->open(QIODevice::WriteOnly | QIODevice::Unbuffered);
+        }
+        if (!inputDevice) {
+            inputDevice = AudioDeviceHelper::getPreferedInputDevice();
+        }
         connect(inputProcessor, SIGNAL(networkPacketReady()), this, SLOT(sendAudioData()));
         inputDevice->start(inputProcessor);
     } else {
         disconnect(inputProcessor, SIGNAL(networkPacketReady()), this, SLOT(sendAudioData()));
-        inputDevice->stop();
+        if (inputDevice) {
+            inputDevice->stop();
+        }
     }
 
 }
@@ -765,10 +770,13 @@ void ChatWidget::addAudioData(QByteArray* array) {
             anim->start();
         }
 
-        //TODO make a toaster and a sound for the call
+        //TODO make a toaster and a sound for the incoming call
         return;
     }
+
+
     if (!outputProcessor) {
+        //start output audio device
         outputProcessor = new QtSpeex::SpeexOutputProcessor();
         outputProcessor->open(QIODevice::ReadOnly | QIODevice::Unbuffered);
         if (!outputDevice) {
@@ -796,7 +804,7 @@ void ChatWidget::addAudioData(QByteArray* array) {
 }
 
 void ChatWidget::sendAudioData() {
-    while(inputProcessor->hasPendingPackets()) {
+    while(inputProcessor && inputProcessor->hasPendingPackets()) {
         QByteArray qbarray = inputProcessor->getNetworkPacket();
         if (qbarray != NULL) {
             std::wstring s2 ( L"" );

@@ -32,6 +32,7 @@
 #define _AUDIOINPUTCONFIG_H
 
 #include <QAudioInput>
+#include <QWidget>
 
 #include "configpage.h"
 #include "ui_AudioInputConfig.h"
@@ -46,6 +47,7 @@ class AudioInputConfig : public ConfigPage {
                 QAudioInput* inputDevice;
                 QtSpeex::SpeexInputProcessor* inputProcessor;
                 AudioBar* abSpeech;
+                bool loaded;
 
 
         protected:
@@ -57,13 +59,16 @@ class AudioInputConfig : public ConfigPage {
                 /** Default Constructor */
                 AudioInputConfig(QWidget * parent = 0, Qt::WFlags flags = 0);
                 /** Default Destructor */
-                ~AudioInputConfig() {}
+                ~AudioInputConfig();
 
+                /** Saves the changes on this page */
                 bool save(QString &errmsg);
+                /** Loads the settings for this page */
                 void load();
 
-        public slots:
+        private slots:
                 void loadSettings();
+                void emptyBuffer();
 
                 void on_qsTransmitHold_valueChanged(int v);
                 void on_qsAmp_valueChanged(int v);

@@ -245,10 +245,10 @@ public:
   void setVoipiNoiseSuppress(int iValue);
   enumVADSource getVoipVoiceActivityD();
   void setVoipVoiceActivityD(enumVADSource vad);
-  float getVoipfVADmax();
-  void setVoipfVADmax(float fValue);
-  float getVoipfVADmin();
-  void setVoipfVADmin(float fValue);
+  int getVoipfVADmax();
+  void setVoipfVADmax(int iValue);
+  int getVoipfVADmin();
+  void setVoipfVADmin(int iValue);
     enumAudioTransmit getVoipATransmit();
     void setVoipATransmit(enumAudioTransmit atransmit);
     int getVoiceHold();
@@ -266,8 +266,8 @@ protected:
   int m_VoipiMinLoudness;
   int m_VoipiNoiseSuppress;
   enumVADSource m_VoipVoiceActivityD;
-  float m_VoipfVADmax;
-  float m_VoipfVADmin;
+  int m_VoipfVADmax;
+  int m_VoipfVADmin;
   enumAudioTransmit m_VoipATransmit;
   int m_VoiceHold;
 

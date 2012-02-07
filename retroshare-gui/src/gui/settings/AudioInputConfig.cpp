@@ -55,17 +55,24 @@ AudioInputConfig::AudioInputConfig(QWidget * parent, Qt::WFlags flags)
     /* Invoke the Qt Designer generated object setup routine */
     ui.setupUi(this);
 
-    /* Hide platform specific features */
-#ifdef Q_WS_WIN
-
-#endif
+    loaded = false;
 }
-/** Loads the settings for this page */
-void
-AudioInputConfig::load()
+
+AudioInputConfig::~AudioInputConfig()
 {
+    if (inputDevice) {
+        inputDevice->stop();
+    }
+}
+
+/** Loads the settings for this page */
+void AudioInputConfig::load()
+{
+    //connect( ui.allowIpDeterminationCB, SIGNAL( toggled( bool ) ), this, SLOT( toggleIpDetermination(bool) ) );
+    //connect( ui.allowTunnelConnectionCB, SIGNAL( toggled( bool ) ), this, SLOT( toggleTunnelConnection(bool) ) );
+
     qtTick = new QTimer(this);
-    qtTick->setObjectName(QLatin1String("Tick"));
+    connect( qtTick, SIGNAL( timeout ( ) ), this, SLOT( on_Tick_timeout() ) );
     qtTick->start(20);
     /*if (AudioInputRegistrar::qmNew) {
             QList<QString> keys = AudioInputRegistrar::qmNew->keys();
@@ -83,24 +90,22 @@ AudioInputConfig::load()
     abSpeech->qcBelow = Qt::red;
     abSpeech->qcInside = Qt::yellow;
     abSpeech->qcAbove = Qt::green;
-    abSpeech->setGeometry(9,20,50,10);
+    //abSpeech->setGeometry(9,20,50,10);
+    ui.qwVadLayout_2->addWidget(abSpeech,0,0,1,0);
 
-    ((QGridLayout*)ui.qwVAD)->addWidget(abSpeech,1,0);
 
-    ui.qcbDevice->view()->setTextElideMode(Qt::ElideRight);
-
-    //ui.on_qcbPushClick_clicked(g.s.bPushClick);
+    //on_qcbPushClick_clicked(g.s.bPushClick);
     //ui.on_Tick_timeout();
     loadSettings();
-    on_Tick_timeout();
+    inputProcessor = NULL;
+    inputDevice = NULL;
 }
 
 
 void AudioInputConfig::loadSettings() {
-	int i;
-	QList<QString> keys;
+        /*QList<QString> keys;
 
-        /*if (AudioInputRegistrar::qmNew)
+        if (AudioInputRegistrar::qmNew)
 		keys=AudioInputRegistrar::qmNew->keys();
 	else
 		keys.clear();
@@ -119,17 +124,14 @@ void AudioInputConfig::loadSettings() {
 	loadSlider(qsTransmitMax, iroundf(r.fVADmax * 32767.0f + 0.5f));
 	loadSlider(qsFrames, (r.iFramesPerPacket == 1) ? 1 : (r.iFramesPerPacket/2 + 1));
         loadSlider(qsDoublePush, iroundf(static_cast<float>(r.uiDoublePush) / 1000.f + 0.5f));*/
-
-        ui.qcbTransmit->setCurrentIndex(Settings->getVoipATransmit());
+        std::cerr << "Settings->getVoipATransmit() : " << Settings->getVoipATransmit() << std::endl;
+        ui.qcbTransmit->setCurrentIndex(Settings->getVoipATransmit()-1);
+        on_qcbTransmit_currentIndexChanged(Settings->getVoipATransmit()-1);
         ui.qsTransmitHold->setValue(Settings->getVoiceHold());
-        ui.qsTransmitMin->setValue(iroundf(Settings->getVoipfVADmin() * 32767.0f + 0.5f));
-        ui.qsTransmitMax->setValue(iroundf(Settings->getVoipfVADmax() * 32767.0f + 0.5f));
+        on_qsTransmitHold_valueChanged(Settings->getVoiceHold());
+        ui.qsTransmitMin->setValue(Settings->getVoipfVADmin());
+        ui.qsTransmitMax->setValue(Settings->getVoipfVADmax());
         //ui.qsDoublePush->setValue(iroundf(static_cast<float>(r.uiDoublePush) / 1000.f + 0.5f));
-
-        if (Settings->getVoipVoiceActivityD() == RshareSettings::VADSourceAmplitude)
-                ui.qrbAmplitude->setChecked(true);
-	else
-                ui.qrbSNR->setChecked(true);
 
         //loadCheckBox(qcbPushClick, r.bPushClick);
         //loadSlider(qsQuality, r.iQuality);
@@ -138,7 +140,10 @@ void AudioInputConfig::loadSettings() {
 	else
                 ui.qsNoise->setValue(14);
 
-        //loadSlider(qsAmp, 20000 - r.iMinLoudness);
+        on_qsNoise_valueChanged(-Settings->getVoipiNoiseSuppress());
+
+        ui.qsAmp->setValue(20000 - Settings->getVoipiMinLoudness());
+        on_qsAmp_valueChanged(20000 - Settings->getVoipiMinLoudness());
         //loadSlider(qsIdle, r.iIdleTime);
 
         /*int echo = 0;
@@ -146,18 +151,22 @@ void AudioInputConfig::loadSettings() {
 		echo = r.bEchoMulti ? 2 : 1;
 
         loadComboBox(qcbEcho, echo);*/
+        connect( ui.qsTransmitHold, SIGNAL( valueChanged ( int ) ), this, SLOT( on_qsTransmitHold_valueChanged(int) ) );
+        connect( ui.qsNoise, SIGNAL( valueChanged ( int ) ), this, SLOT( on_qsNoise_valueChanged(int) ) );
+        connect( ui.qsAmp, SIGNAL( valueChanged ( int ) ), this, SLOT( on_qsAmp_valueChanged(int) ) );
+        connect( ui.qcbTransmit, SIGNAL( currentIndexChanged ( int ) ), this, SLOT( on_qcbTransmit_currentIndexChanged(int) ) );
+        loaded = true;
 }
 
-bool AudioInputConfig::save(QString &/*errmsg*/) {
+bool AudioInputConfig::save(QString &/*errmsg*/) {//mainly useless beacause saving occurs in realtime
         //s.iQuality = qsQuality->value();
         Settings->setVoipiNoiseSuppress((ui.qsNoise->value() == 14) ? 0 : - ui.qsNoise->value());
         Settings->setVoipiMinLoudness(18000 - ui.qsAmp->value() + 2000);
         Settings->setVoiceHold(ui.qsTransmitHold->value());
-        Settings->setVoipfVADmin(static_cast<float>(ui.qsTransmitMin->value()) / 32767.0f);
-        Settings->setVoipfVADmax(static_cast<float>(ui.qsTransmitMax->value()) / 32767.0f);
-        Settings->setVoipVoiceActivityD(ui.qrbSNR->isChecked() ? RshareSettings::VADSourceSignalToNoise : RshareSettings::VADSourceAmplitude);
+        Settings->setVoipfVADmin(ui.qsTransmitMin->value());
+        Settings->setVoipfVADmax(ui.qsTransmitMax->value());
         /*s.uiDoublePush = qsDoublePush->value() * 1000;*/
-        Settings->setVoipATransmit(static_cast<RshareSettings::enumAudioTransmit>(ui.qcbTransmit->currentIndex()));
+        Settings->setVoipATransmit(static_cast<RshareSettings::enumAudioTransmit>(ui.qcbTransmit->currentIndex() + 1));
 
         /*s.bPushClick = qcbPushClick->isChecked();
 	s.qsPushClickOn = qlePushClickPathOn->text();
@@ -175,6 +184,8 @@ bool AudioInputConfig::save(QString &/*errmsg*/) {
 			air->setDeviceChoice(qcbDevice->itemData(idx), s);
 		}
         }*/
+
+        return true;
 }
 
 /*bool AudioInputDialog::expert(bool b) {
@@ -192,9 +203,10 @@ bool AudioInputConfig::save(QString &/*errmsg*/) {
 
 
 void AudioInputConfig::on_qsTransmitHold_valueChanged(int v) {
-	float val = static_cast<float>(v * 10);
-	val = val / 1000.0f;
+        float val = static_cast<float>(v * FRAME_SIZE);
+        val = val / SAMPLING_RATE;
         ui.qlTransmitHold->setText(tr("%1 s").arg(val, 0, 'f', 2));
+        Settings->setVoiceHold(v);
 }
 
 void AudioInputConfig::on_qsNoise_valueChanged(int v) {
@@ -207,12 +219,14 @@ void AudioInputConfig::on_qsNoise_valueChanged(int v) {
                 ui.qlNoise->setText(tr("-%1 dB").arg(v));
 	}
         ui.qlNoise->setPalette(pal);
+        Settings->setVoipiNoiseSuppress(- ui.qsNoise->value());
 }
 
 void AudioInputConfig::on_qsAmp_valueChanged(int v) {
 	v = 18000 - v + 2000;
 	float d = 20000.0f/static_cast<float>(v);
         ui.qlAmp->setText(QString::fromLatin1("%1").arg(d, 0, 'f', 2));
+        Settings->setVoipiMinLoudness(18000 - ui.qsAmp->value() + 2000);
 }
 
 
@@ -228,12 +242,13 @@ void AudioInputConfig::on_qcbTransmit_currentIndexChanged(int v) {
                         ui.qswTransmit->setCurrentWidget(ui.qwPTT);
 			break;
 	}
+        if (loaded)
+            Settings->setVoipATransmit(static_cast<RshareSettings::enumAudioTransmit>(ui.qcbTransmit->currentIndex() + 1));
 }
 
 
 void AudioInputConfig::on_Tick_timeout() {
         if (!inputProcessor) {
-            inputProcessor = new QtSpeex::SpeexInputProcessor();
             inputProcessor = new QtSpeex::SpeexInputProcessor();
             inputProcessor->open(QIODevice::WriteOnly | QIODevice::Unbuffered);
 
@@ -241,15 +256,23 @@ void AudioInputConfig::on_Tick_timeout() {
                 inputDevice = AudioDeviceHelper::getPreferedInputDevice();
             }
             inputDevice->start(inputProcessor);
+            connect(inputProcessor, SIGNAL(networkPacketReady()), this, SLOT(emptyBuffer()));
         }
 
         abSpeech->iBelow = ui.qsTransmitMin->value();
         abSpeech->iAbove = ui.qsTransmitMax->value();
-
-        if (ui.qrbAmplitude->isChecked()) {
-                abSpeech->iValue = iroundf((32767.f/96.0f) * (96.0f + inputProcessor->dPeakCleanMic) + 0.5f);
-        } else {
-                abSpeech->iValue = iroundf(inputProcessor->fSpeechProb * 32767.0f + 0.5f);
+        if (loaded) {
+            Settings->setVoipfVADmin(ui.qsTransmitMin->value());
+            Settings->setVoipfVADmax(ui.qsTransmitMax->value());
         }
+
+        abSpeech->iValue = iroundf(inputProcessor->dVoiceAcivityLevel * 32767.0f + 0.5f);
+
         abSpeech->update();
+}
+
+void AudioInputConfig::emptyBuffer() {
+    while(inputProcessor->hasPendingPackets()) {
+        inputProcessor->getNetworkPacket(); //that will purge the buffer
+    }
 }

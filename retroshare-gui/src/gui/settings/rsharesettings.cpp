@@ -732,7 +732,9 @@ void RshareSettings::setMaxTimeBeforeIdle(uint nValue)
 int RshareSettings::getVoipiMinLoudness()
 {
     if (m_VoipiMinLoudness == -1) {
-        m_VoipiMinLoudness = value("VoipiMinLoudness", 0).toInt();
+        Settings->beginGroup(QString("Voip"));
+        m_VoipiMinLoudness = value("VoipiMinLoudness", 2000).toInt();
+        Settings->endGroup();
     }
 
     return m_VoipiMinLoudness;
@@ -741,13 +743,17 @@ int RshareSettings::getVoipiMinLoudness()
 void RshareSettings::setVoipiMinLoudness(int iValue)
 {
     m_VoipiMinLoudness = iValue;
+    Settings->beginGroup(QString("Voip"));
     setValue("VoipiMinLoudness", iValue);
+    Settings->endGroup();
 }
 
 int RshareSettings::getVoipiNoiseSuppress()
 {
     if (m_VoipiNoiseSuppress == -1) {
-        m_VoipiNoiseSuppress = value("VoipiNoiseSuppress", 0).toInt();
+        Settings->beginGroup(QString("Voip"));
+        m_VoipiNoiseSuppress = value("VoipiNoiseSuppress", -45).toInt();
+        Settings->endGroup();
     }
 
     return m_VoipiNoiseSuppress;
@@ -756,13 +762,17 @@ int RshareSettings::getVoipiNoiseSuppress()
 void RshareSettings::setVoipiNoiseSuppress(int iValue)
 {
     m_VoipiNoiseSuppress = iValue;
+    Settings->beginGroup(QString("Voip"));
     setValue("VoipiNoiseSuppress", iValue);
+    Settings->endGroup();
 }
 
 RshareSettings::enumVADSource RshareSettings::getVoipVoiceActivityD()
 {
     if (m_VoipVoiceActivityD == RshareSettings::VADSourceNotSet) {
-        m_VoipVoiceActivityD = (enumVADSource) value("VoipVoiceActivityD", 0).toInt();
+        Settings->beginGroup(QString("Voip"));
+        m_VoipVoiceActivityD = (enumVADSource) value("VoipVoiceActivityD", 2).toInt();
+        Settings->endGroup();
     }
 
     return m_VoipVoiceActivityD;
@@ -771,45 +781,58 @@ RshareSettings::enumVADSource RshareSettings::getVoipVoiceActivityD()
 void RshareSettings::setVoipVoiceActivityD(RshareSettings::enumVADSource eValue)
 {
     m_VoipVoiceActivityD = eValue;
+    Settings->beginGroup(QString("Voip"));
     setValue("VoipVoiceActivityD", eValue);
+    Settings->endGroup();
 }
 
 
-float RshareSettings::getVoipfVADmax()
+int RshareSettings::getVoipfVADmax()
 {
     if (m_VoipfVADmax == -1) {
-        m_VoipfVADmax = value("VoipfVADmax", 0).toFloat();
+        Settings->beginGroup(QString("Voip"));
+        m_VoipfVADmax = value("VoipfVADmax", 23661).toInt();
+        Settings->endGroup();
     }
 
-    return m_VoipVoiceActivityD;
+    return m_VoipfVADmax;
 }
 
-void RshareSettings::setVoipfVADmax(float fValue)
+void RshareSettings::setVoipfVADmax(int iValue)
 {
-    m_VoipfVADmax = fValue;
-    setValue("VoipfVADmax", fValue);
+    m_VoipfVADmax = iValue;
+    Settings->beginGroup(QString("Voip"));
+    setValue("VoipfVADmax", iValue);
+    Settings->endGroup();
 }
 
-float RshareSettings::getVoipfVADmin()
+int RshareSettings::getVoipfVADmin()
 {
     if (m_VoipfVADmin == -1) {
-        m_VoipfVADmin = value("VoipfVADmin", 0).toFloat();
+        Settings->beginGroup(QString("Voip"));
+        m_VoipfVADmin = value("VoipfVADmin", 16018).toInt();
+        Settings->endGroup();
     }
 
-    return m_VoipVoiceActivityD;
+    return m_VoipfVADmin;
 }
 
-void RshareSettings::setVoipfVADmin(float fValue)
+void RshareSettings::setVoipfVADmin(int iValue)
 {
-    m_VoipfVADmin = fValue;
-    setValue("VoipfVADmin", fValue);
+    m_VoipfVADmin = iValue;
+    Settings->beginGroup(QString("Voip"));
+    setValue("VoipfVADmin", iValue);
+    Settings->endGroup();
 }
 
 
 RshareSettings::enumAudioTransmit RshareSettings::getVoipATransmit()
 {
     if (m_VoipATransmit == RshareSettings::AudioTransmitNotSet) {
-        m_VoipATransmit = (enumAudioTransmit)value("VoipATransmit", 0).toInt();
+        Settings->beginGroup(QString("Voip"));
+        m_VoipATransmit = ((enumAudioTransmit)(value("VoipATransmit", 2).toInt()));
+
+        Settings->endGroup();
     }
 
     return m_VoipATransmit;
@@ -818,14 +841,18 @@ RshareSettings::enumAudioTransmit RshareSettings::getVoipATransmit()
 void RshareSettings::setVoipATransmit(RshareSettings::enumAudioTransmit eValue)
 {
     m_VoipATransmit = eValue;
+    Settings->beginGroup(QString("Voip"));
     setValue("VoipATransmit", eValue);
+    Settings->endGroup();
 }
 
 
 int RshareSettings::getVoiceHold()
 {
     if (m_VoiceHold == -1) {
-        m_VoiceHold = value("VoiceHold", 0).toInt();
+        Settings->beginGroup(QString("Voip"));
+        m_VoiceHold = value("VoiceHold", 75).toInt();
+        Settings->endGroup();
     }
 
     return m_VoiceHold;
@@ -834,5 +861,7 @@ int RshareSettings::getVoiceHold()
 void RshareSettings::setVoiceHold(int iValue)
 {
     m_VoiceHold = iValue;
+    Settings->beginGroup(QString("Voip"));
     setValue("VoiceHold", iValue);
+    Settings->endGroup();
 }

@@ -1,4 +1,5 @@
 #include "audiodevicehelper.h"
+#include <iostream>
 
 AudioDeviceHelper::AudioDeviceHelper()
 {
@@ -33,7 +34,7 @@ QAudioInput* AudioDeviceHelper::getDefaultInputDevice() {
             }
         }
     }
-
+    std::cerr << dev.deviceName().toStdString();
     return new QAudioInput(dev, fmt);
 }
 QAudioInput* AudioDeviceHelper::getPreferedInputDevice() {

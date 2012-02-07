@@ -37,7 +37,7 @@ namespace QtSpeex {
 		Q_OBJECT
 
 	public:
-                float dPeakSpeaker, dPeakSignal, dMaxMic, dPeakMic, dPeakCleanMic;
+                float dPeakSpeaker, dPeakSignal, dMaxMic, dPeakMic, dPeakCleanMic, dVoiceAcivityLevel;
                 float fSpeechProb;
                 SpeexInputProcessor(QObject* parent = 0);
                 virtual ~SpeexInputProcessor();
@@ -52,7 +52,7 @@ namespace QtSpeex {
 		void networkPacketReady();
 
 	protected:
-                virtual qint64 readData(char *data, qint64 maxSize) {} //not used for input processor
+                virtual qint64 readData(char *data, qint64 maxSize) {return false;} //not used for input processor
 		virtual qint64 writeData(const char *data, qint64 maxSize);
                 virtual bool isSequential() const;
                 volatile bool bPreviousVoice;
@@ -90,7 +90,7 @@ namespace QtSpeex {
 
         protected:
                 virtual qint64 readData(char *data, qint64 maxSize);
-                virtual qint64 writeData(const char *data, qint64 maxSize) {} //not used for output processor
+                virtual qint64 writeData(const char *data, qint64 maxSize) {return 0;} //not used for output processor
                 virtual bool isSequential() const;
 
         private:
