@@ -319,6 +319,7 @@ HEADERS +=  rshare.h \
             gui/settings/AddFileAssociationDialog.h \
             gui/settings/AudioInputConfig.h \
             gui/settings/AudioStats.h \
+            gui/settings/AudioWizard.h \
             gui/toaster/MessageToaster.h \
             gui/toaster/OnlineToaster.h \
             gui/toaster/DownloadToaster.h \
@@ -449,6 +450,7 @@ FORMS +=    gui/StartDialog.ui \
             gui/settings/RelayPage.ui \
             gui/settings/PluginItem.ui \
             gui/settings/AudioInputConfig.ui \
+            gui/settings/AudioWizard.ui \
             gui/toaster/MessageToaster.ui \
             gui/toaster/OnlineToaster.ui \
             gui/toaster/DownloadToaster.ui \
@@ -618,6 +620,7 @@ SOURCES +=  main.cpp \
             gui/settings/AddFileAssociationDialog.cpp \
             gui/settings/AudioInputConfig.cpp \
             gui/settings/AudioStats.cpp \
+            gui/settings/AudioWizard.cpp \
             gui/statusbar/peerstatus.cpp \
             gui/statusbar/natstatus.cpp \
             gui/statusbar/dhtstatus.cpp \

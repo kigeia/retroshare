@@ -31,10 +31,10 @@
 #ifndef _AUDIOWIZARD_H
 #define _AUDIOWIZARD_H
 
-#include "Settings.h"
+//#include "Settings.h"
 #include "AudioStats.h"
-#include "AudioOutput.h"
-#include "GlobalShortcut.h"
+#include "util/SpeexProcessor.h"
+//#include "GlobalShortcut.h"
 
 class CompletablePage : public QWizardPage {
 		Q_OBJECT
@@ -52,16 +52,18 @@ class AudioWizard: public QWizard, public Ui::AudioWizard {
 	private:
 		Q_OBJECT
 		Q_DISABLE_COPY(AudioWizard)
-	protected:
-		bool bTransmitChanged;
+                AudioBar* abAmplify;
+
+        protected:
+                //bool bTransmitChanged;
 
 		QGraphicsScene *qgsScene;
 		QGraphicsItem *qgiSource;
-		AudioOutputSample *aosSource;
+                //AudioOutputSample *aosSource;
 		float fAngle;
 		float fX, fY;
 
-		Settings sOldSettings;
+                //Settings sOldSettings;
 
 		QTimer *ticker;
 

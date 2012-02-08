@@ -29,29 +29,16 @@
 */
 
 #include "AudioWizard.h"
-#include "AudioInput.h"
-#include "Global.h"
-#include "Settings.h"
-#include "Log.h"
-#include "MainWindow.h"
-
-CompletablePage::CompletablePage(QWizard *p) : QWizardPage(p) {
-	bComplete = true;
-}
-
-void CompletablePage::setComplete(bool b) {
-	bComplete = b;
-	emit completeChanged();
-}
-
-bool CompletablePage::isComplete() const {
-	return bComplete;
-}
+//#include "AudioInput.h"
+//#include "Global.h"
+//#include "Settings.h"
+//#include "Log.h"
+//#include "MainWindow.h"
 
 AudioWizard::AudioWizard(QWidget *p) : QWizard(p) {
 	bInit = true;
 	bLastActive = false;
-	g.bInAudioWizard = true;
+        //g.bInAudioWizard = true;
 
 	ticker = new QTimer(this);
 	ticker->setObjectName(QLatin1String("Ticker"));
@@ -59,10 +46,10 @@ AudioWizard::AudioWizard(QWidget *p) : QWizard(p) {
 	setupUi(this);
 
 	// Done
-	qcbUsage->setChecked(g.s.bUsage);
+        //qcbUsage->setChecked(g.s.bUsage);
 
 	// Device
-	if (AudioInputRegistrar::qmNew) {
+        /*if (AudioInputRegistrar::qmNew) {
 		foreach(AudioInputRegistrar *air, *AudioInputRegistrar::qmNew) {
 			qcbInput->addItem(air->name);
 			if (air->name == AudioInputRegistrar::current) {
@@ -71,14 +58,14 @@ AudioWizard::AudioWizard(QWidget *p) : QWizard(p) {
 			}
 			QList<audioDevice> ql= air->getDeviceChoices();
 		}
-	}
-	if (qcbInput->count() < 2) {
+        }
+        if (qcbInput->count() < 2) {
 		qcbInput->setEnabled(false);
-	}
+        }*/
 
-	qcbEcho->setChecked(g.s.bEcho);
+        //qcbEcho->setChecked(g.s.bEcho);
 
-	if (AudioOutputRegistrar::qmNew) {
+        /*if (AudioOutputRegistrar::qmNew) {
 		foreach(AudioOutputRegistrar *aor, *AudioOutputRegistrar::qmNew) {
 			qcbOutput->addItem(aor->name);
 			if (aor->name == AudioOutputRegistrar::current) {
@@ -88,20 +75,20 @@ AudioWizard::AudioWizard(QWidget *p) : QWizard(p) {
 			}
 			QList<audioDevice> ql= aor->getDeviceChoices();
 		}
-	}
+        }
 
-	if (qcbOutput->count() < 2) {
+        if (qcbOutput->count() < 2) {
 		qcbOutput->setEnabled(false);
-	}
+        }*/
 
-	qcbHighContrast->setChecked(g.s.bHighContrast);
-	on_qcbHighContrast_clicked(g.s.bHighContrast);
+        //qcbHighContrast->setChecked(g.s.bHighContrast);
+        //on_qcbHighContrast_clicked(g.s.bHighContrast);
 #ifdef Q_OS_WIN
 	// On windows we can autodetect this
 	qcbHighContrast->setVisible(false);
 #endif
 
-	// Settings
+        /*// Settings
 	if (g.s.iQuality == 16000 && g.s.iFramesPerPacket == 6)
 		qrbQualityLow->setChecked(true);
 	else if (g.s.iQuality == 40000 && g.s.iFramesPerPacket == 2)
@@ -110,8 +97,8 @@ AudioWizard::AudioWizard(QWidget *p) : QWizard(p) {
 		qrbQualityUltra->setChecked(true);
 	else
 		qrbQualityCustom->setChecked(true);
-
-	quint32 iMessage = Settings::LogNone;
+        */
+        /*quint32 iMessage = Settings::LogNone;
 	for (int i = Log::firstMsgType;i <= Log::lastMsgType; ++i) {
 		iMessage |= (g.s.qmMessages[i] & (Settings::LogSoundfile | Settings::LogTTS));
 	}
@@ -133,20 +120,21 @@ AudioWizard::AudioWizard(QWidget *p) : QWizard(p) {
 
 	on_qcbInput_activated(qcbInput->currentIndex());
 	on_qcbOutput_activated(qcbOutput->currentIndex());
-
+        */
+        abAmplify = new AudioBar(this);
 	abAmplify->qcBelow = Qt::blue;
 	abAmplify->qcInside = Qt::green;
 	abAmplify->qcAbove = Qt::red;
 
 	// Trigger
-	foreach(const Shortcut &s, g.s.qlShortcuts) {
+        /*foreach(const Shortcut &s, g.s.qlShortcuts) {
 		if (s.iIndex == g.mw->gsPushTalk->idx) {
 			skwPTT->setShortcut(s.qlButtons);
 			break;
 		}
-	}
+        }*/
 
-	if (g.s.atTransmit == Settings::PushToTalk)
+        if (Settings->getVoipATransmit() == R::PushToTalk)
 		qrPTT->setChecked(true);
 	else if (g.s.vsVAD == Settings::Amplitude)
 		qrAmplitude->setChecked(true);
