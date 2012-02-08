@@ -18,8 +18,8 @@
 #include <speex/speex_jitter.h>
 
 #define ECHOTAILSIZE  30
-#define SAMPLING_RATE 16000
-#define FRAME_SIZE 320
+#define SAMPLING_RATE 16000 //must be the same as the speex setted mode (speex_wb_mode)
+#define FRAME_SIZE 320 //must be the same as the speex setted mode (speex_wb_mode)
 
 class SpeexBits;
 
@@ -47,6 +47,7 @@ namespace QtSpeex {
 
                 int iMaxBitRate;
                 int iRealTimeBitrate;
+                bool bPreviousVoice;
 
 	signals:
 		void networkPacketReady();
@@ -55,7 +56,6 @@ namespace QtSpeex {
                 virtual qint64 readData(char *data, qint64 maxSize) {return false;} //not used for input processor
 		virtual qint64 writeData(const char *data, qint64 maxSize);
                 virtual bool isSequential() const;
-                volatile bool bPreviousVoice;
 
         private:
                 int iFrameCounter;

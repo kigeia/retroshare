@@ -47,6 +47,7 @@ class AudioBar : public QWidget {
 		int iMin, iMax;
 		int iBelow, iAbove;
 		int iValue, iPeak;
+                bool highContrast;
 		QColor qcBelow, qcInside, qcAbove;
 
 		QList<QColor> qlReplacableColors;

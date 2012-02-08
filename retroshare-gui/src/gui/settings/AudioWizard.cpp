@@ -34,6 +34,20 @@
 //#include "Settings.h"
 //#include "Log.h"
 //#include "MainWindow.h"
+#include "gui/settings/rsharesettings.h"
+#include "util/audiodevicehelper.h"
+
+#define iroundf(x) ( static_cast<int>(x) )
+
+AudioWizard::~AudioWizard()
+{
+    if (inputDevice) {
+        inputDevice->stop();
+    }
+    if (outputDevice) {
+        outputDevice->stop();
+    }
+}
 
 AudioWizard::AudioWizard(QWidget *p) : QWizard(p) {
 	bInit = true;
@@ -43,7 +57,11 @@ AudioWizard::AudioWizard(QWidget *p) : QWizard(p) {
 	ticker = new QTimer(this);
 	ticker->setObjectName(QLatin1String("Ticker"));
 
-	setupUi(this);
+        setupUi(this);
+        inputProcessor = NULL;
+        inputDevice = NULL;
+        outputProcessor = NULL;
+        outputDevice = NULL;
 
 	// Done
         //qcbUsage->setChecked(g.s.bUsage);
@@ -126,6 +144,8 @@ AudioWizard::AudioWizard(QWidget *p) : QWizard(p) {
 	abAmplify->qcInside = Qt::green;
 	abAmplify->qcAbove = Qt::red;
 
+        verticalLayout_3->addWidget(abAmplify);
+
 	// Trigger
         /*foreach(const Shortcut &s, g.s.qlShortcuts) {
 		if (s.iIndex == g.mw->gsPushTalk->idx) {
@@ -134,48 +154,30 @@ AudioWizard::AudioWizard(QWidget *p) : QWizard(p) {
 		}
         }*/
 
-        if (Settings->getVoipATransmit() == R::PushToTalk)
+        if (Settings->getVoipATransmit() == RshareSettings::AudioTransmitPushToTalk)
 		qrPTT->setChecked(true);
-	else if (g.s.vsVAD == Settings::Amplitude)
-		qrAmplitude->setChecked(true);
+        else if (Settings->getVoipATransmit() == RshareSettings::AudioTransmitVAD)
+                qrVAD->setChecked(true);
 	else
-		qrSNR->setChecked(true);
+                qrContinuous->setChecked(true);
 
+        abVAD = new AudioBar(this);
 	abVAD->qcBelow = Qt::red;
 	abVAD->qcInside = Qt::yellow;
 	abVAD->qcAbove = Qt::green;
 
-	qsVAD->setValue(iroundf(g.s.fVADmax * 32767.f + 0.5f));
+        qsTransmitMin->setValue(Settings->getVoipfVADmin());
+        qsTransmitMax->setValue(Settings->getVoipfVADmax());
 
-	// Positional
-	qcbHeadphone->setChecked(g.s.bPositionalHeadphone);
-
-	fAngle = 0.0f;
-	fX = fY = 0.0f;
-	qgsScene = NULL;
-	qgiSource = NULL;
-	aosSource = NULL;
-	qgvView->scale(1.0f, -1.0f);
-	qgvView->viewport()->installEventFilter(this);
+        verticalLayout_6->addWidget(abVAD);
 
 	// Volume
-	qsMaxAmp->setValue(g.s.iMinLoudness);
-
-	// Device Tuning
-	qsOutputDelay->setValue(g.s.iOutputDelay);
-
-	on_qsOutputDelay_valueChanged(qsOutputDelay->value());
+        qsMaxAmp->setValue(Settings->getVoipiMinLoudness());
 
 	setOption(QWizard::NoCancelButton, false);
 	resize(700, 500);
 
-	updateTriggerWidgets(qrPTT->isChecked());
-	sOldSettings = g.s;
-	g.s.lmLoopMode = Settings::Local;
-	g.s.dPacketLoss = 0.0;
-	g.s.dMaxPacketDelay = 0.0;
-	g.s.bMute = true;
-	g.s.bDeaf = false;
+        updateTriggerWidgets(qrVAD->isChecked());
 
 	bTransmitChanged = false;
 
@@ -191,9 +193,10 @@ AudioWizard::AudioWizard(QWidget *p) : QWizard(p) {
 
 	ticker->setSingleShot(false);
 	ticker->start(20);
+        connect( ticker, SIGNAL( timeout ( ) ), this, SLOT( on_Ticker_timeout() ) );
 }
 
-bool AudioWizard::eventFilter(QObject *obj, QEvent *evt) {
+/*bool AudioWizard::eventFilter(QObject *obj, QEvent *evt) {
 	if ((evt->type() == QEvent::MouseButtonPress) ||
 	        (evt->type() == QEvent::MouseMove)) {
 		QMouseEvent *qme = dynamic_cast<QMouseEvent *>(evt);
@@ -206,248 +209,46 @@ bool AudioWizard::eventFilter(QObject *obj, QEvent *evt) {
 		}
 	}
 	return QWizard::eventFilter(obj, evt);
-}
+}*/
 
-void AudioWizard::on_qcbInput_activated(int) {
-	qcbInputDevice->clear();
 
-	if (! AudioInputRegistrar::qmNew)
-		return;
-
-	AudioInputRegistrar *air = AudioInputRegistrar::qmNew->value(qcbInput->currentText());
-	QList<audioDevice> ql = air->getDeviceChoices();
-
-	foreach(audioDevice d, ql) {
-		qcbInputDevice->addItem(d.first, d.second);
-	}
-
-	qcbInputDevice->setEnabled(ql.count() > 1);
-
-	on_qcbInputDevice_activated(0);
-}
-
-void AudioWizard::on_qcbInputDevice_activated(int) {
-	if (bInit)
-		return;
-
-	if (! AudioInputRegistrar::qmNew)
-		return;
-
-	Audio::stopInput();
-
-	AudioInputRegistrar *air = AudioInputRegistrar::qmNew->value(qcbInput->currentText());
-	int idx = qcbInputDevice->currentIndex();
-	if (idx > -1) {
-		air->setDeviceChoice(qcbInputDevice->itemData(idx), g.s);
-	}
-
-	qcbEcho->setEnabled(air->canEcho(qcbOutput->currentText()));
-
-	g.ai = AudioInputPtr(air->create());
-	g.ai->start(QThread::HighestPriority);
-}
-
-void AudioWizard::on_qcbOutput_activated(int) {
-	qcbOutputDevice->clear();
-
-	if (! AudioOutputRegistrar::qmNew)
-		return;
-
-	AudioOutputRegistrar *aor = AudioOutputRegistrar::qmNew->value(qcbOutput->currentText());
-	QList<audioDevice> ql = aor->getDeviceChoices();
-
-	foreach(audioDevice d, ql) {
-		qcbOutputDevice->addItem(d.first, d.second);
-	}
-
-	qcbAttenuateOthers->setEnabled(aor->canMuteOthers());
-
-	qcbOutputDevice->setEnabled(ql.count() > 1);
-
-	on_qcbOutputDevice_activated(0);
-}
-
-void AudioWizard::on_qcbOutputDevice_activated(int) {
-	if (bInit)
-		return;
-
-	if (! AudioOutputRegistrar::qmNew)
-		return;
-
-	Audio::stopOutput();
-
-	AudioOutputRegistrar *aor = AudioOutputRegistrar::qmNew->value(qcbOutput->currentText());
-	int idx = qcbOutputDevice->currentIndex();
-	if (idx > -1) {
-		aor->setDeviceChoice(qcbOutputDevice->itemData(idx), g.s);
-		bDelay = aor->usesOutputDelay();
-	}
-
-	AudioInputRegistrar *air = AudioInputRegistrar::qmNew->value(qcbInput->currentText());
-	qcbEcho->setEnabled(air->canEcho(qcbOutput->currentText()));
-
-	g.ao = AudioOutputPtr(aor->create());
-	g.ao->start(QThread::HighPriority);
-}
-
-void AudioWizard::on_qsOutputDelay_valueChanged(int v) {
-	qlOutputDelay->setText(tr("%1 ms").arg(v*10));
-	g.s.iOutputDelay = v;
-	restartAudio();
-}
 
 void AudioWizard::on_qsMaxAmp_valueChanged(int v) {
-	g.s.iMinLoudness = qMin(v, 30000);
-}
-
-void AudioWizard::showPage(int pageid) {
-	if (pageid == -1)
-		return;
-
-	CompletablePage *cp = qobject_cast<CompletablePage *>(currentPage());
-
-	AudioOutputPtr ao = g.ao;
-	if (ao)
-		ao->wipe();
-	aosSource = NULL;
-
-	g.bPosTest = false;
-
-	if (cp == qwpIntro) {
-		g.s.bMute = true;
-	} else if (cp == qwpDone) {
-		g.s.bMute = true;
-	} else if (cp == qwpDeviceTuning) {
-		g.s.bMute = true;
-		playChord();
-	} else if (cp == qwpPositional) {
-		fX = fY = 0.0f;
-		g.s.bMute = true;
-		g.bPosTest = true;
-		if (qgsScene) {
-			delete qgsScene;
-			qgiSource = NULL;
-			qgsScene = NULL;
-		}
-		playChord();
-	} else {
-		g.s.bMute = false;
-	}
-
-	if ((cp == qwpTrigger) || (cp == qwpSettings)) {
-		if (! bTransmitChanged)
-			g.s.atTransmit = sOldSettings.atTransmit;
-		else if (qrPTT->isChecked())
-			g.s.atTransmit = Settings::PushToTalk;
-		else
-			g.s.atTransmit = Settings::VAD;
-	} else {
-		g.s.atTransmit = Settings::Continous;
-	}
-}
-
-int AudioWizard::nextId() const {
-	AudioOutputPtr ao = g.ao;
-
-	int nextid = QWizard::nextId();
-	if (currentPage() == qwpSettings && ! g.s.bPositionalAudio)
-		nextid++;
-	else if ((currentPage() == qwpDevice) && ! bDelay)
-		nextid++;
-	return nextid;
-}
-
-void AudioWizard::playChord() {
-	AudioOutputPtr ao = g.ao;
-	if (! ao || aosSource || bInit)
-		return;
-	aosSource = ao->playSample(QLatin1String("skin:wb_male.oga"), true);
-}
-
-void AudioWizard::restartAudio() {
-	aosSource = NULL;
-
-	Audio::stop();
-
-	g.s.qsAudioInput = qcbInput->currentText();
-	g.s.qsAudioOutput = qcbOutput->currentText();
-
-	Audio::start();
-
-	if (qgsScene) {
-		delete qgsScene;
-		qgiSource = NULL;
-		qgsScene = NULL;
-	}
-
-	if ((currentPage() == qwpPositional) || (currentPage() == qwpDeviceTuning))
-		playChord();
-}
-
-void AudioWizard::reject() {
-	g.s = sOldSettings;
-
-	g.s.lmLoopMode = Settings::None;
-	restartAudio();
-
-	AudioOutputPtr ao = g.ao;
-	if (ao)
-		ao->wipe();
-	aosSource = NULL;
-	g.bInAudioWizard = false;
-
-	QWizard::reject();
-}
-
-void AudioWizard::accept() {
-	if (! bTransmitChanged)
-		g.s.atTransmit = sOldSettings.atTransmit;
-	else if (qrPTT->isChecked())
-		g.s.atTransmit = Settings::PushToTalk;
-	else
-		g.s.atTransmit = Settings::VAD;
-
-	g.s.bMute = sOldSettings.bMute;
-	g.s.bDeaf = sOldSettings.bDeaf;
-	g.s.lmLoopMode = Settings::None;
-
-	// Switch TTS<->Sounds according to user selection
-	if (!qrbNotificationCustom->isChecked()) {
-		Settings::MessageLog mlReplace = qrbNotificationTTS->isChecked() ? Settings::LogSoundfile : Settings::LogTTS;
-
-		for (int i = Log::firstMsgType;i <= Log::lastMsgType; ++i) {
-			if (g.s.qmMessages[i] & mlReplace)
-				g.s.qmMessages[i] ^= Settings::LogSoundfile | Settings::LogTTS;
-		}
-
-		if (qrbNotificationTTS->isChecked()) {
-			g.s.bTTS = true;
-			g.mw->qaAudioTTS->setChecked(true);
-		}
-	}
-
-	g.s.bUsage = qcbUsage->isChecked();
-	g.bPosTest = false;
-	restartAudio();
-	g.bInAudioWizard = false;
-	QWizard::accept();
-}
-
-bool AudioWizard::validateCurrentPage() {
-	if (currentId() == 1) {
-		if ((qcbInput->currentIndex() < 0) || (qcbOutput->currentIndex() < 0))
-			return false;
-	}
-	return true;
+        Settings->setVoipiMinLoudness(qMin(v, 30000));
 }
 
 void AudioWizard::on_Ticker_timeout() {
-	AudioInputPtr ai = g.ai;
-	AudioOutputPtr ao = g.ao;
-	if (! ai || ! ao)
-		return;
+        if (!inputProcessor) {
+            inputProcessor = new QtSpeex::SpeexInputProcessor();
+            inputProcessor->open(QIODevice::WriteOnly | QIODevice::Unbuffered);
 
-	int iPeak = static_cast<int>(ai->dMaxMic);
+            if (!inputDevice) {
+                inputDevice = AudioDeviceHelper::getPreferedInputDevice();
+            }
+            inputDevice->start(inputProcessor);
+            connect(inputProcessor, SIGNAL(networkPacketReady()), this, SLOT(loopAudio()));
+        }
+
+        if (!outputProcessor) {
+            outputProcessor = new QtSpeex::SpeexOutputProcessor();
+            outputProcessor->open(QIODevice::ReadOnly | QIODevice::Unbuffered);
+
+            if (!outputDevice) {
+                outputDevice = AudioDeviceHelper::getPreferedOutputDevice();
+            }
+            outputDevice->start(outputProcessor);
+        }
+
+        abVAD->iBelow = qsTransmitMin->value();
+        abVAD->iAbove = qsTransmitMax->value();
+        Settings->setVoipfVADmin(qsTransmitMin->value());
+        Settings->setVoipfVADmax(qsTransmitMax->value());
+
+        abVAD->iValue = iroundf(inputProcessor->dVoiceAcivityLevel * 32767.0f + 0.5f);
+
+        abVAD->update();
+
+        int iPeak = inputProcessor->dMaxMic;
 
 	if (iTicks++ >= 50) {
 		iMaxPeak = 0;
@@ -461,91 +262,65 @@ void AudioWizard::on_Ticker_timeout() {
 	abAmplify->iPeak = iMaxPeak;
 	abAmplify->update();
 
-	abVAD->iBelow = iroundf(g.s.fVADmin * 32767.0f + 0.5f);
-	abVAD->iAbove = iroundf(g.s.fVADmax * 32767.0f + 0.5f);
-
-	if (g.s.vsVAD == Settings::Amplitude) {
-		abVAD->iValue = iroundf((32767.f/96.0f) * (96.0f + ai->dPeakCleanMic) + 0.5f);
-	} else {
-		abVAD->iValue = iroundf(ai->fSpeechProb * 32767.0f + 0.5f);
-	}
-	abVAD->update();
-
-	bool active = ai->isTransmitting();
+        bool active = inputProcessor->bPreviousVoice;
 	if (active != bLastActive) {
 		bLastActive = active;
 		qlTalkIcon->setPixmap(active ? qpTalkingOn : qpTalkingOff);
 	}
-
-	if (! qgsScene) {
-		unsigned int nspeaker = 0;
-		const float *spos = ao->getSpeakerPos(nspeaker);
-		if ((nspeaker > 0) && spos) {
-			qgsScene = new QGraphicsScene(QRectF(-4.0f, -4.0f, 8.0f, 8.0f), this);
-			qgsScene->addEllipse(QRectF(-0.12f, -0.12f, 0.24f, 0.24f), QPen(Qt::black), QBrush(Qt::darkRed));
-			for (unsigned int i=0;i<nspeaker;++i) {
-				if ((spos[3*i] != 0.0f) || (spos[3*i+1] != 0.0f) || (spos[3*i+2] != 0.0f))
-					qgsScene->addEllipse(QRectF(spos[3*i] - 0.1f, spos[3*i+2] - 0.1f, 0.2f, 0.2f), QPen(Qt::black), QBrush(Qt::yellow));
-			}
-			qgiSource = qgsScene->addEllipse(QRectF(-.15f, -.15f, 0.3f, 0.3f), QPen(Qt::black), QBrush(Qt::green));
-			qgvView->setScene(qgsScene);
-			qgvView->fitInView(-4.0f, -4.0f, 8.0f, 8.0f, Qt::KeepAspectRatio);
-		}
-	} else if (currentPage() == qwpPositional) {
-		float xp, yp;
-		if ((fX == 0.0f) && (fY == 0.0f)) {
-			fAngle += 0.05f;
-
-			xp = sinf(fAngle) * 2.0f;
-			yp = cosf(fAngle) * 2.0f;
-		} else {
-			xp = fX;
-			yp = fY;
-		}
-
-		qgiSource->setPos(xp, yp);
-		if (aosSource) {
-			aosSource->fPos[0] = xp;
-			aosSource->fPos[1] = 0;
-			aosSource->fPos[2] = yp;
-		}
-	}
 }
 
-void AudioWizard::on_qsVAD_valueChanged(int v) {
+void AudioWizard::loopAudio() {
+    if (outputDevice && outputDevice->error() != QAudio::NoError) {
+        //TODO : find a way to restart output device, but there is a pulseaudio locks that prevents it here
+        std::cerr << "Restarting output (and input) device. Error before reset " << outputDevice->error() << " buffer size : " << outputDevice->bufferSize() << std::endl;
+        inputDevice->stop();
+        outputDevice->stop();
+        inputDevice->start(inputProcessor);
+        outputDevice->start(outputProcessor);
+        std::cerr << "Output device restarted." << std::endl;
+    }
+    while(outputProcessor && inputProcessor && inputProcessor->hasPendingPackets()) {
+        std::cerr << "Processing packet." << std::endl;
+        outputProcessor->putNetworkPacket(inputProcessor->getNetworkPacket());
+    }
+}
+
+void AudioWizard::on_qsTransmitMax_valueChanged(int v) {
 	if (! bInit) {
-		g.s.fVADmax = static_cast<float>(v) / 32767.0f;
-		g.s.fVADmin = g.s.fVADmax * 0.9f;
+                Settings->setVoipfVADmax(v);
 	}
 }
 
-void AudioWizard::on_qrSNR_clicked(bool on) {
-	if (on) {
-		g.s.vsVAD = Settings::SignalToNoise;
-		g.s.atTransmit = Settings::VAD;
-		updateTriggerWidgets(false);
-		bTransmitChanged = true;
-	}
+void AudioWizard::on_qsTransmitMin_valueChanged(int v) {
+        if (! bInit) {
+                Settings->setVoipfVADmin(v);
+        }
 }
 
-void AudioWizard::on_qrAmplitude_clicked(bool on) {
+void AudioWizard::on_qrVAD_clicked(bool on) {
 	if (on) {
-		g.s.vsVAD = Settings::Amplitude;
-		g.s.atTransmit = Settings::VAD;
-		updateTriggerWidgets(false);
+                Settings->setVoipATransmit(RshareSettings::AudioTransmitVAD);
+                updateTriggerWidgets(true);
 		bTransmitChanged = true;
 	}
 }
 
 void AudioWizard::on_qrPTT_clicked(bool on) {
 	if (on) {
-		g.s.atTransmit = Settings::PushToTalk;
-		updateTriggerWidgets(true);
+                Settings->setVoipATransmit(RshareSettings::AudioTransmitPushToTalk);
+                updateTriggerWidgets(false);
 		bTransmitChanged = true;
 	}
 }
 
-void AudioWizard::on_skwPTT_keySet(bool valid, bool last) {
+void AudioWizard::on_qrContinuous_clicked(bool on) {
+        if (on) {
+                Settings->setVoipATransmit(RshareSettings::AudioTransmitContinous);
+                updateTriggerWidgets(false);
+                bTransmitChanged = true;
+        }
+}
+/*void AudioWizard::on_skwPTT_keySet(bool valid, bool last) {
 	if (valid)
 		qrPTT->setChecked(true);
 	else if (qrPTT->isChecked())
@@ -580,66 +355,17 @@ void AudioWizard::on_skwPTT_keySet(bool valid, bool last) {
 		GlobalShortcutEngine::engine->bNeedRemap = true;
 		GlobalShortcutEngine::engine->needRemap();
 	}
-}
+}*/
 
-void AudioWizard::on_qcbEcho_clicked(bool on) {
-	g.s.bEcho = on;
-	restartAudio();
-}
 
-void AudioWizard::on_qcbHeadphone_clicked(bool on) {
-	g.s.bPositionalHeadphone = on;
-	restartAudio();
-}
-
-void AudioWizard::on_qcbPositional_clicked(bool on) {
-	g.s.bPositionalAudio = on;
-	g.s.bTransmitPosition = on;
-	restartAudio();
-}
-
-void AudioWizard::updateTriggerWidgets(bool ptt) {
-	qwVAD->setEnabled(!ptt);
-	qwpTrigger->setComplete(!ptt || (skwPTT->qlButtons.count() > 0));
-}
-
-void AudioWizard::on_qcbAttenuateOthers_clicked(bool checked) {
-	g.s.bAttenuateOthers = checked;
+void AudioWizard::updateTriggerWidgets(bool vad_on) {
+        if (!vad_on)
+            qwVAD->hide();
+        else
+            qwVAD->show();
 }
 
 void AudioWizard::on_qcbHighContrast_clicked(bool on) {
-	g.s.bHighContrast = on;
-
-	qliAmpTuningText->setVisible(!g.s.bHighContrast);
-	qliAmpTuningTextHC->setVisible(g.s.bHighContrast);
-
-	qliVolumeTuningText->setVisible(!g.s.bHighContrast);
-	qliVolumeTuningTextHC->setVisible(g.s.bHighContrast);
-
-	qliVadTuningText->setVisible(!g.s.bHighContrast);
-	qliVadTuningTextHC->setVisible(g.s.bHighContrast);
-}
-
-void AudioWizard::on_qrbQualityLow_clicked() {
-	g.s.iQuality = 16000;
-	g.s.iFramesPerPacket = 6;
-	restartAudio();
-}
-
-void AudioWizard::on_qrbQualityBalanced_clicked() {
-	g.s.iQuality = 40000;
-	g.s.iFramesPerPacket = 2;
-	restartAudio();
-}
-
-void AudioWizard::on_qrbQualityUltra_clicked() {
-	g.s.iQuality = 72000;
-	g.s.iFramesPerPacket = 1;
-	restartAudio();
-}
-
-void AudioWizard::on_qrbQualityCustom_clicked() {
-	g.s.iQuality = sOldSettings.iQuality;
-	g.s.iFramesPerPacket = sOldSettings.iFramesPerPacket;
-	restartAudio();
+        abAmplify->highContrast = on;
+        abVAD->highContrast = on;
 }

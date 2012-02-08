@@ -36,6 +36,7 @@
 //#include "smallft.h"
 
 AudioBar::AudioBar(QWidget *p) : QWidget(p) {
+        highContrast = false;
 	qcBelow = Qt::yellow;
 	qcAbove = Qt::red;
 	qcInside = Qt::green;
@@ -83,21 +84,35 @@ void AudioBar::paintEvent(QPaintEvent *) {
 	int min = iroundf(static_cast<float>(iMin) * scale + 0.5f);
 	int peak = iroundf(static_cast<float>(iPeak) * scale + 0.5f);
 
-        if (val <= below) {
-                p.fillRect(0, 0, val, h, qcBelow);
-                p.fillRect(val, 0, below-val, h, qcBelow.darker(300));
-                p.fillRect(below, 0, above-below, h, qcInside.darker(300));
-                p.fillRect(above, 0, max-above, h, qcAbove.darker(300));
-        } else if (val <= above) {
-                p.fillRect(0, 0, below, h, qcBelow);
-                p.fillRect(below, 0, val-below, h, qcInside);
-                p.fillRect(val, 0, above-val, h, qcInside.darker(300));
-                p.fillRect(above, 0, max-above, h, qcAbove.darker(300));
+        if (highContrast) {
+            // Draw monochrome representation
+            QColor fg = QPalette().foreground().color();
+
+            p.fillRect(0, 0, below, h, QBrush(fg, qlReplacementBrushes.value(qlReplacableColors.indexOf(qcBelow), Qt::CrossPattern)));
+            p.fillRect(below, 0, above - below, h, QBrush(fg, qlReplacementBrushes.value(qlReplacableColors.indexOf(qcInside), Qt::NoBrush)));
+            p.fillRect(above, 0, max - above, h, QBrush(fg, qlReplacementBrushes.value(qlReplacableColors.indexOf(qcAbove), Qt::CrossPattern)));
+            p.fillRect(0, 0, val, h, QBrush(fg, Qt::SolidPattern));
+
+            p.drawRect(0, 0, max - 1, h - 1);
+            p.drawLine(below, 0, below, h);
+            p.drawLine(above, 0, above, h);
         } else {
-                p.fillRect(0, 0, below, h, qcBelow);
-                p.fillRect(below, 0, above-below, h, qcInside);
-                p.fillRect(above, 0, val-above, h, qcAbove);
-                p.fillRect(val, 0, max-val, h, qcAbove.darker(300));
+            if (val <= below) {
+                    p.fillRect(0, 0, val, h, qcBelow);
+                    p.fillRect(val, 0, below-val, h, qcBelow.darker(300));
+                    p.fillRect(below, 0, above-below, h, qcInside.darker(300));
+                    p.fillRect(above, 0, max-above, h, qcAbove.darker(300));
+            } else if (val <= above) {
+                    p.fillRect(0, 0, below, h, qcBelow);
+                    p.fillRect(below, 0, val-below, h, qcInside);
+                    p.fillRect(val, 0, above-val, h, qcInside.darker(300));
+                    p.fillRect(above, 0, max-above, h, qcAbove.darker(300));
+            } else {
+                    p.fillRect(0, 0, below, h, qcBelow);
+                    p.fillRect(below, 0, above-below, h, qcInside);
+                    p.fillRect(above, 0, val-above, h, qcAbove);
+                    p.fillRect(val, 0, max-val, h, qcAbove.darker(300));
+            }
         }
 
         if ((peak >= min) && (peak <= max))  {

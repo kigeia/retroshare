@@ -31,20 +31,14 @@
 #ifndef _AUDIOWIZARD_H
 #define _AUDIOWIZARD_H
 
+#include <QAudioInput>
+#include <QAudioOutput>
+
 //#include "Settings.h"
 #include "AudioStats.h"
 #include "util/SpeexProcessor.h"
 //#include "GlobalShortcut.h"
-
-class CompletablePage : public QWizardPage {
-		Q_OBJECT
-	protected:
-		bool bComplete;
-	public:
-		CompletablePage(QWizard *p = NULL);
-		void setComplete(bool);
-		bool isComplete() const;
-};
+#include "util/SpeexProcessor.h"
 
 #include "ui_AudioWizard.h"
 
@@ -53,9 +47,14 @@ class AudioWizard: public QWizard, public Ui::AudioWizard {
 		Q_OBJECT
 		Q_DISABLE_COPY(AudioWizard)
                 AudioBar* abAmplify;
+                AudioBar* abVAD;
+                QAudioInput* inputDevice;
+                QAudioOutput* outputDevice;
+                QtSpeex::SpeexInputProcessor* inputProcessor;
+                QtSpeex::SpeexOutputProcessor* outputProcessor;
 
         protected:
-                //bool bTransmitChanged;
+                bool bTransmitChanged;
 
 		QGraphicsScene *qgsScene;
 		QGraphicsItem *qgiSource;
@@ -74,42 +73,24 @@ class AudioWizard: public QWizard, public Ui::AudioWizard {
 		QPixmap qpTalkingOn, qpTalkingOff;
 
 		int iMaxPeak;
-		int iTicks;
-
-		void restartAudio();
-		void playChord();
-
-		bool eventFilter(QObject *, QEvent *);
-	public slots:
-		void on_qcbInput_activated(int);
-		void on_qcbInputDevice_activated(int);
-		void on_qcbOutput_activated(int);
-		void on_qcbOutputDevice_activated(int);
-		void on_qsOutputDelay_valueChanged(int);
-		void on_qsMaxAmp_valueChanged(int);
-		void on_Ticker_timeout();
-		void on_qsVAD_valueChanged(int);
-		void on_qrAmplitude_clicked(bool);
-		void on_qrSNR_clicked(bool);
-		void on_qrPTT_clicked(bool);
-		void on_qcbEcho_clicked(bool);
-		void on_qcbHeadphone_clicked(bool);
-		void on_qcbPositional_clicked(bool);
-		void on_qcbAttenuateOthers_clicked(bool);
-		void on_qcbHighContrast_clicked(bool);
-		void on_skwPTT_keySet(bool, bool);
-		void on_qrbQualityUltra_clicked();
-		void on_qrbQualityBalanced_clicked();
-		void on_qrbQualityLow_clicked();
-		void on_qrbQualityCustom_clicked();
-		void showPage(int);
-		void updateTriggerWidgets(bool);
+                int iTicks;
+        public slots:
+                void on_Ticker_timeout();
+                void on_qsMaxAmp_valueChanged(int);
+                void on_qrPTT_clicked(bool);
+                void on_qrVAD_clicked(bool);
+                void on_qrContinuous_clicked(bool);
+                void on_qsTransmitMin_valueChanged(int);
+                void on_qsTransmitMax_valueChanged(int);
+                void on_qcbHighContrast_clicked(bool);
+                void updateTriggerWidgets(bool);
 	public:
-		AudioWizard(QWidget *parent);
-		void reject();
-		void accept();
-		bool validateCurrentPage();
-		virtual int nextId() const;
+                AudioWizard(QWidget *parent);
+                ~AudioWizard();
+
+        private slots :
+                void loopAudio();
+
 };
 
 #endif

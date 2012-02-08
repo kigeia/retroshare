@@ -175,19 +175,20 @@ qint64 SpeexInputProcessor::writeData(const char *data, qint64 maxSize) {
         while(inputBuffer.size() > FRAME_SIZE * sizeof(qint16)) {
 
                 QByteArray source_frame = inputBuffer.left(FRAME_SIZE * sizeof(qint16));
+                const short* psMic = (const short *)source_frame.data();
 
-                //quiet_speex_echo_capture(echo_state, (qint16*) source_frame.data(), pcm);
-
+                //quiet_speex_echo_capture(echo_state, psMic, pcm);
                 //let's do volume detection
                 iFrameCounter++;
                 sum=1.0f;
-                for (i=0;i<FRAME_SIZE;i++)
-                        sum += static_cast<float>(source_frame.data()[i] * source_frame.data()[i]);
+                for (i=0;i<FRAME_SIZE;i++) {
+                        sum += static_cast<float>(psMic[i] * psMic[i]);
+                }
                 dPeakMic = qMax(20.0f*log10f(sqrtf(sum / static_cast<float>(FRAME_SIZE)) / 32768.0f), -96.0f);
 
                 max = 1;
                 for (i=0;i<FRAME_SIZE;i++)
-                        max = static_cast<short>(std::abs(source_frame.data()[i]) > max ? std::abs(source_frame.data()[i]) : max);
+                        max = static_cast<short>(std::abs(psMic[i]) > max ? std::abs(psMic[i]) : max);
                 dMaxMic = max;
 
                 dPeakSpeaker = 0.0;
@@ -232,8 +233,12 @@ qint64 SpeexInputProcessor::writeData(const char *data, qint64 maxSize) {
                 }
 
                 float v = 30000.0f / static_cast<float>(Settings->getVoipiMinLoudness());
+
+                std::cerr << "Settings->getVoipiMinLoudness() : " << Settings->getVoipiMinLoudness() << std::endl;
+
                 iArg = iroundf(floorf(20.0f * log10f(v)));
                 speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_AGC_MAX_GAIN, &iArg);
+                std::cerr << "SPEEX_PREPROCESS_SET_AGC_MAX_GAIN : " << iArg << std::endl;
 
                 speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_GET_AGC_GAIN, &iArg);
                 float gainValue = static_cast<float>(iArg);
@@ -336,7 +341,7 @@ qint64 SpeexInputProcessor::writeData(const char *data, qint64 maxSize) {
                 speex_encode_int(enc_state, psSource, enc_bits);
                 if (bIsSpeech) {
                     QByteArray networkFrame;
-                    networkFrame.resize(speex_bits_nbytes(enc_bits)+4);//add 4 for the frame timestamp for the jitter buffer and 4 for the packet size
+                    networkFrame.resize(speex_bits_nbytes(enc_bits)+4);//add 4 for the frame timestamp for the jitter buffer
                     int packetSize = speex_bits_write(enc_bits, networkFrame.data()+4, networkFrame.size()-4);
                     ((int*)networkFrame.data())[0] = send_timestamp;
 
@@ -349,7 +354,7 @@ qint64 SpeexInputProcessor::writeData(const char *data, qint64 maxSize) {
                 }
                 bPreviousVoice = bIsSpeech;
 
-                std::cerr << "iRealTimeBitrate : " << iRealTimeBitrate << std::endl;
+                //std::cerr << "iRealTimeBitrate : " << iRealTimeBitrate << std::endl;
 
                 send_timestamp += FRAME_SIZE;
                 if (send_timestamp >= INT_MAX)

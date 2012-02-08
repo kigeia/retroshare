@@ -37,6 +37,7 @@
 //#include "NetworkConfig.h"
 #include "rsharesettings.h"
 #include "util/audiodevicehelper.h"
+#include "AudioWizard.h"
 
 #define iroundf(x) ( static_cast<int>(x) )
 
@@ -161,7 +162,7 @@ void AudioInputConfig::loadSettings() {
 bool AudioInputConfig::save(QString &/*errmsg*/) {//mainly useless beacause saving occurs in realtime
         //s.iQuality = qsQuality->value();
         Settings->setVoipiNoiseSuppress((ui.qsNoise->value() == 14) ? 0 : - ui.qsNoise->value());
-        Settings->setVoipiMinLoudness(18000 - ui.qsAmp->value() + 2000);
+        Settings->setVoipiMinLoudness(20000 - ui.qsAmp->value());
         Settings->setVoiceHold(ui.qsTransmitHold->value());
         Settings->setVoipfVADmin(ui.qsTransmitMin->value());
         Settings->setVoipfVADmax(ui.qsTransmitMax->value());
@@ -223,10 +224,10 @@ void AudioInputConfig::on_qsNoise_valueChanged(int v) {
 }
 
 void AudioInputConfig::on_qsAmp_valueChanged(int v) {
-	v = 18000 - v + 2000;
+        v = 20000 - v;
 	float d = 20000.0f/static_cast<float>(v);
         ui.qlAmp->setText(QString::fromLatin1("%1").arg(d, 0, 'f', 2));
-        Settings->setVoipiMinLoudness(18000 - ui.qsAmp->value() + 2000);
+        Settings->setVoipiMinLoudness(20000 - ui.qsAmp->value());
 }
 
 
@@ -275,4 +276,10 @@ void AudioInputConfig::emptyBuffer() {
     while(inputProcessor->hasPendingPackets()) {
         inputProcessor->getNetworkPacket(); //that will purge the buffer
     }
+}
+
+void AudioInputConfig::on_qpbAudioWizard_clicked() {
+    AudioWizard *aw = new AudioWizard(this);
+    aw->exec();
+    delete aw;
 }

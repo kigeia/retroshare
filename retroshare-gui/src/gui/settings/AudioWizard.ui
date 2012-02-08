@@ -76,22 +76,6 @@ Speak loudly, as when you are annoyed or excited. Decrease the volume in the sou
      </widget>
     </item>
     <item>
-     <widget class="QLabel" name="qliVolumeTuningTextHC">
-      <property name="text">
-       <string comment="For high contrast mode">&lt;p&gt;
-Open your sound control panel and go to the recording settings. Make sure the microphone is selected as active input with maximum recording volume. If there's an option to enable a &quot;Microphone boost&quot; make sure it's checked.
-&lt;/p&gt;
-&lt;p&gt;
-Speak loudly, as when you are annoyed or excited. Decrease the volume in the sound control panel until the bar below stays as high as possible in the striped and the empty but &lt;b&gt;not&lt;/b&gt; the crisscrossed zone while you speak.
-&lt;/p&gt;
-</string>
-      </property>
-      <property name="wordWrap">
-       <bool>true</bool>
-      </property>
-     </widget>
-    </item>
-    <item>
      <widget class="QLabel" name="qliAmpTuningText">
       <property name="text">
        <string>Now talk softly, as you would when talking late at night and you don't want to disturb anyone. Adjust the slider below so that the bar moves into green when you talk, but stays blue while you're silent.</string>
@@ -102,20 +86,10 @@ Speak loudly, as when you are annoyed or excited. Decrease the volume in the sou
      </widget>
     </item>
     <item>
-     <widget class="QLabel" name="qliAmpTuningTextHC">
-      <property name="enabled">
-       <bool>true</bool>
-      </property>
-      <property name="text">
-       <string comment="For high contrast mode">Now talk softly, as you would when talking late at night and you don't want to disturb anyone. Adjust the slider below so that the bar moves into empty zone when you talk, but stays in the striped one while you're silent.</string>
-      </property>
-      <property name="wordWrap">
-       <bool>true</bool>
-      </property>
-     </widget>
-    </item>
-    <item>
      <widget class="QSlider" name="qsMaxAmp">
+      <property name="minimum">
+       <number>1</number>
+      </property>
       <property name="maximum">
        <number>32767</number>
       </property>
@@ -183,7 +157,7 @@ Speak loudly, as when you are annoyed or excited. Decrease the volume in the sou
     <item row="0" column="0" colspan="2">
      <widget class="QLabel" name="qliVADText">
       <property name="text">
-       <string>This will help Mumble figure out when you are talking. The first step is selecting which data value to use.</string>
+       <string>This will help Retroshare figure out when you are talking. The first step is selecting which data value to use.</string>
       </property>
       <property name="wordWrap">
        <bool>true</bool>
@@ -245,17 +219,26 @@ Speak loudly, as when you are annoyed or excited. Decrease the volume in the sou
         </widget>
        </item>
        <item>
-        <widget class="QLabel" name="qliVadTuningTextHC">
-         <property name="text">
-          <string comment="For high contrast mode">Next you need to adjust the following slider. The first few utterances you say should end up in the empty area (definitive speech). While talking, you should stay inside the striped (might be speech) and when you're not talking, everything should be in the crisscrossed (definitively not speech).</string>
+        <widget class="QSlider" name="qsTransmitMin">
+         <property name="minimum">
+          <number>1</number>
          </property>
-         <property name="wordWrap">
-          <bool>true</bool>
+         <property name="maximum">
+          <number>32767</number>
+         </property>
+         <property name="singleStep">
+          <number>100</number>
+         </property>
+         <property name="pageStep">
+          <number>1000</number>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QSlider" name="qsVAD">
+        <widget class="QSlider" name="qsTransmitMax">
          <property name="minimum">
           <number>1</number>
          </property>
@@ -289,6 +272,13 @@ Speak loudly, as when you are annoyed or excited. Decrease the volume in the sou
       </property>
      </spacer>
     </item>
+    <item row="3" column="0">
+     <widget class="QRadioButton" name="qrContinuous">
+      <property name="text">
+       <string>Continuous transmission</string>
+      </property>
+     </widget>
+    </item>
    </layout>
   </widget>
   <widget class="QWizardPage" name="qwpDone">
@@ -302,23 +292,14 @@ Speak loudly, as when you are annoyed or excited. Decrease the volume in the sou
     <item>
      <widget class="QLabel" name="qlDone">
       <property name="text">
-       <string>&lt;p&gt;
-Congratulations. You should now be ready to enjoy a richer sound experience with Mumble.
-&lt;/p&gt;
-&lt;p&gt;
-Mumble is under continuous development, and the development team wants to focus on the features that benefit the most users. To this end, Mumble supports submitting anonymous statistics about your configuration to the developers. These statistics are essential for future development, and also make sure the features you use aren't deprecated.
-&lt;/p&gt;
-</string>
+       <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Cantarell'; font-size:11pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;Congratulations. You should now be ready to enjoy a richer sound experience with Retroshare. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
       </property>
       <property name="wordWrap">
        <bool>true</bool>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QCheckBox" name="qcbUsage">
-      <property name="text">
-       <string>Submit anonymous statistics to the Mumble project</string>
       </property>
      </widget>
     </item>
