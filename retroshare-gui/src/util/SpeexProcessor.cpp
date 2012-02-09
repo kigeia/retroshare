@@ -393,7 +393,6 @@ void SpeexOutputProcessor::putNetworkPacket(QString name, QByteArray packet) {
     //the size part (first 4 byets) is not actually used in the logic
     if (packet.size() > 4)
     {
-        int recv_timestamp = ((int*)packet.data())[0];
         SpeexJitter userJitter;
         if (userJitterHash.contains(name)) {
             userJitter = userJitterHash.value(name);
@@ -403,6 +402,12 @@ void SpeexOutputProcessor::putNetworkPacket(QString name, QByteArray packet) {
             speex_decoder_ctl(userJitter.dec, SPEEX_SET_ENH, &on);
             userJitterHash.insert(name, userJitter);
         }
+
+        int recv_timestamp = ((int*)packet.data())[0];
+        userJitter.mostUpdatedTSatPut = recv_timestamp;
+        if (userJitter.firsttimecalling_get)
+            return;
+
         speex_jitter_put(userJitter, (char *)packet.data()+4, packet.size()-4, recv_timestamp);
     }
 }
@@ -424,6 +429,7 @@ void quiet_speex_echo_playback (SpeexEchoState *st, const spx_int16_t *play) {
 
 qint64 SpeexOutputProcessor::readData(char *data, qint64 maxSize) {
 
+    int ts = 0; //time stamp for the jitter call
     while(outputBuffer.size() < maxSize) {
         QByteArray result_frame;
         result_frame.resize(FRAME_SIZE * sizeof(qint16));
@@ -434,7 +440,12 @@ qint64 SpeexOutputProcessor::readData(char *data, qint64 maxSize) {
             SpeexJitter jitter = i.value();
             QByteArray intermediate_frame;
             intermediate_frame.resize(FRAME_SIZE * sizeof(qint16));
-            speex_jitter_get(jitter, (spx_int16_t*)intermediate_frame.data(), 0);
+            if (jitter.firsttimecalling_get)
+            {
+                int ts = jitter.mostUpdatedTSatPut;
+                jitter.firsttimecalling_get = false;
+            }
+            speex_jitter_get(jitter, (spx_int16_t*)intermediate_frame.data(), &ts);
             for (int j = 0; j< FRAME_SIZE; j++) {
                 short sample1 = ((short*)result_frame.data())[j];
                 short sample2 = ((short*)intermediate_frame.data())[j];

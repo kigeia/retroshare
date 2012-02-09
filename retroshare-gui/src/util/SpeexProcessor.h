@@ -31,8 +31,8 @@ typedef struct SpeexJitter {
    JitterBuffer *packets;            /**< Generic jitter buffer state */
    void *dec;                        /**< Pointer to Speex decoder */
    spx_int32_t frame_size;           /**< Frame size of Speex decoder */
-   int timestamp;           /**< timestamp of the last packet put */
-   bool firsttimecalling_get_on_jitter;
+   int mostUpdatedTSatPut;           /**< timestamp of the last packet put */
+   bool firsttimecalling_get;
 } SpeexJitter;
 
 namespace QtSpeex {
