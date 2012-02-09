@@ -124,8 +124,8 @@ ChatWidget::ChatWidget(QWidget *parent) :
 
         resetStatusBar();
 
-        //outputProcessor = NULL;
-        //outputDevice = NULL;
+        outputProcessor = NULL;
+        outputDevice = NULL;
         inputProcessor = NULL;
         inputDevice = NULL;
 }
@@ -774,17 +774,13 @@ void ChatWidget::addAudioData(const QString name, QByteArray* array) {
         return;
     }
 
-    QAudioOutput *outputDevice = outputDeviceMap.value(name);
     if (!outputDevice) {
         outputDevice = AudioDeviceHelper::getDefaultOutputDevice();
-        outputDeviceMap.insert(name, outputDevice);
     }
 
-    QtSpeex::SpeexOutputProcessor *outputProcessor = outputProcessorMap.value(name);
     if (!outputProcessor) {
         //start output audio device
         outputProcessor = new QtSpeex::SpeexOutputProcessor();
-        outputProcessorMap.insert(name,outputProcessor);
         outputProcessor->open(QIODevice::ReadOnly | QIODevice::Unbuffered);
         outputDevice->start(outputProcessor);
     }

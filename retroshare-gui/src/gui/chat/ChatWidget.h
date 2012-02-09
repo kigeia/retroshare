@@ -154,9 +154,9 @@ private:
 	bool firstShow;
 
         QAudioInput* inputDevice;
-        QMap<QString, QAudioOutput*> outputDeviceMap;
+        QAudioOutput* outputDevice;
         QtSpeex::SpeexInputProcessor* inputProcessor;
-        QMap<QString, QtSpeex::SpeexOutputProcessor*> outputProcessorMap;
+        QtSpeex::SpeexOutputProcessor* outputProcessor;
 
 	Ui::ChatWidget *ui;
 };

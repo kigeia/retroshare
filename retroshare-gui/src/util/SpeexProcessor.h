@@ -102,7 +102,7 @@ namespace QtSpeex {
                 QByteArray outputBuffer;
                 QList<QByteArray> inputNetworkBuffer;
 
-                QHash<QString, SpeexJitter> userJitterHash;
+                QHash<QString, SpeexJitter*> userJitterHash;
 
                 //SpeexJitter jitter;
 
