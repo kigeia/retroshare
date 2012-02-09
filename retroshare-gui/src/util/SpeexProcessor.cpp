@@ -11,10 +11,13 @@
 #include <cstdlib>
 
 #include "gui/settings/rsharesettings.h"
+#include "audiodevicehelper.h"
 
 #define iroundf(x) ( static_cast<int>(x) )
 
 using namespace QtSpeex;
+
+static QAudioInput *qAudioInput = NULL;
 
 SpeexInputProcessor::SpeexInputProcessor(QObject *parent) : QIODevice(parent),
     preprocessor(0),
@@ -28,39 +31,6 @@ SpeexInputProcessor::SpeexInputProcessor(QObject *parent) : QIODevice(parent),
 {
         for (int i=0; i<FRAME_SIZE; i++)
                 pcm[i] = 0;
-
-        /*enc_bits = new SpeexBits;
-        speex_bits_init(enc_bits);
-
-        enc_state = speex_encoder_init(&speex_wb_mode);
-        int tmp = 8;
-        speex_encoder_ctl(enc_state, SPEEX_SET_QUALITY, &tmp);
-        tmp = 10;
-        speex_encoder_ctl(enc_state, SPEEX_SET_COMPLEXITY, &tmp);
-
-        int on = 1; // on
-        speex_encoder_ctl(enc_state, SPEEX_SET_VAD, &on);// VAD = Voice Activity Detection
-        speex_encoder_ctl(enc_state, SPEEX_SET_DTX, &on);// DTX = Discontinuous Transmission
-        speex_encoder_ctl(enc_state, SPEEX_SET_VBR, &on);// VBR = Variable Bit rate
-        float VBRQuality = 8.0; // VBR = Variable Bit rate
-        speex_encoder_ctl(enc_state, SPEEX_SET_VBR_QUALITY, &VBRQuality);
-        speex_encoder_ctl(enc_state, SPEEX_SET_VBR_MAX_BITRATE, &iMaxBitRate);
-
-        preprocessor = speex_preprocess_state_init(FRAME_SIZE, SAMPLING_RATE);
-        speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_AGC, &on);
-        tmp = 2;
-        speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_AGC_MAX_GAIN, &tmp);
-        speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_VAD, &on);
-        speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_DENOISE, &on);
-        tmp = -30;
-        speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_NOISE_SUPPRESS, &tmp);
-
-        echo_state = speex_echo_state_init(FRAME_SIZE, ECHOTAILSIZE*FRAME_SIZE);
-        tmp = SAMPLING_RATE;
-        speex_echo_ctl(echo_state, SPEEX_ECHO_SET_SAMPLING_RATE, &tmp);
-        speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_ECHO_STATE, echo_state);
-        */
-
 
         enc_bits = new SpeexBits;
         speex_bits_init(enc_bits);
@@ -132,9 +102,22 @@ SpeexInputProcessor::SpeexInputProcessor(QObject *parent) : QIODevice(parent),
         //}
 
         //bRunning = true;
+        if (!qAudioInput) {
+            qAudioInput = AudioDeviceHelper::getPreferedInputDevice();
+        }
+        if (qAudioInput) {
+            qAudioInput->start(this);
+        } else {
+            std::cerr << "Unable to find input device." << std::endl;
+        }
+        this->open(QIODevice::WriteOnly | QIODevice::Unbuffered);
     }
 
 SpeexInputProcessor::~SpeexInputProcessor() {
+        if (qAudioInput) {
+            qAudioInput->stop();
+        }
+        close();
         speex_preprocess_state_destroy(preprocessor);
         speex_echo_state_destroy(echo_state);
 
@@ -152,6 +135,23 @@ QByteArray SpeexInputProcessor::getNetworkPacket() {
 bool SpeexInputProcessor::hasPendingPackets() {
         return !outputNetworkBuffer.empty();
 }
+
+void SpeexInputProcessor::stopAudioInputDevice() {
+        if (qAudioInput) {
+            qAudioInput->stop();
+        }
+}
+
+void SpeexInputProcessor::startAudioInputDevice() {
+        if (qAudioInput) {
+            qAudioInput->start(this);
+        }
+}
+
+QAudioInput* getAudioInputDevice() {
+    return qAudioInput;
+}
+
 
 //make it quiet because it spams too much the standard ouptut and error
 void quiet_speex_echo_capture (SpeexEchoState *st, const spx_int16_t *rec, spx_int16_t *out) {

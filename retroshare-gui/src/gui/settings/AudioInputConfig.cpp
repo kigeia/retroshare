@@ -251,12 +251,6 @@ void AudioInputConfig::on_qcbTransmit_currentIndexChanged(int v) {
 void AudioInputConfig::on_Tick_timeout() {
         if (!inputProcessor) {
             inputProcessor = new QtSpeex::SpeexInputProcessor();
-            inputProcessor->open(QIODevice::WriteOnly | QIODevice::Unbuffered);
-
-            if (!inputDevice) {
-                inputDevice = AudioDeviceHelper::getPreferedInputDevice();
-            }
-            inputDevice->start(inputProcessor);
             connect(inputProcessor, SIGNAL(networkPacketReady()), this, SLOT(emptyBuffer()));
         }
 
