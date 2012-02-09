@@ -12,8 +12,6 @@
 #include <QByteArray>
 #include <QList>
 #include <QMutex>
-#include <QAudioInput>
-#include <QAudioOutput>
 
 #include <speex/speex_preprocess.h>
 #include <speex/speex_echo.h>
@@ -41,7 +39,7 @@ namespace QtSpeex {
 	public:
                 float dPeakSpeaker, dPeakSignal, dMaxMic, dPeakMic, dPeakCleanMic, dVoiceAcivityLevel;
                 float fSpeechProb;
-                SpeexInputProcessor(QObject* parent = 0);//upon construction, it automatically connects to an input audio device
+                SpeexInputProcessor(QObject* parent = 0);
                 virtual ~SpeexInputProcessor();
 
 		bool hasPendingPackets();
@@ -50,11 +48,6 @@ namespace QtSpeex {
                 int iMaxBitRate;
                 int iRealTimeBitrate;
                 bool bPreviousVoice;
-                void stopAudioInputDevice();
-                void startAudioInputDevice();
-                QAudioInput *getAudioInputDevice();
-
-
 
 	signals:
 		void networkPacketReady();
@@ -101,7 +94,6 @@ namespace QtSpeex {
                 virtual bool isSequential() const;
 
         private:
-                QAudioOutput *qAudioOutput;
                 void* dec_state;
                 SpeexBits* dec_bits;
                 int  mostUpdatedTSatPut; //use for the decoder jitter
@@ -125,6 +117,4 @@ namespace QtSpeex {
         };
     }
 
-// Initialisation des singletons à NULL
-//QtSpeex::SpeexInputProcessor *QtSpeex::SpeexInputProcessor::_singleton = NULL;
 #endif // SPEEXPROCESSOR_H

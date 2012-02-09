@@ -41,6 +41,9 @@
 
 AudioWizard::~AudioWizard()
 {
+    if (inputDevice) {
+        inputDevice->stop();
+    }
     if (outputDevice) {
         outputDevice->stop();
     }
@@ -217,6 +220,12 @@ void AudioWizard::on_qsMaxAmp_valueChanged(int v) {
 void AudioWizard::on_Ticker_timeout() {
         if (!inputProcessor) {
             inputProcessor = new QtSpeex::SpeexInputProcessor();
+            inputProcessor->open(QIODevice::WriteOnly | QIODevice::Unbuffered);
+
+            if (!inputDevice) {
+                inputDevice = AudioDeviceHelper::getPreferedInputDevice();
+            }
+            inputDevice->start(inputProcessor);
             connect(inputProcessor, SIGNAL(networkPacketReady()), this, SLOT(loopAudio()));
         }
 
@@ -261,17 +270,14 @@ void AudioWizard::on_Ticker_timeout() {
 }
 
 void AudioWizard::loopAudio() {
-    //sometimes when an error occurs, the output device needs to be restarted. let's stop it in one call and restart it in the other call 
-    if (outputDevice->state() == QAudio::StoppedState) {
-        std::cerr << "Restarting output device." << std::endl;
-        outputDevice->start(outputProcessor);
-    }
-    if (outputDevice && outputDevice->error() == QAudio::FatalError) {
+    if (outputDevice && outputDevice->error() != QAudio::NoError) {
         //TODO : find a way to restart output device, but there is a pulseaudio locks that prevents it here
-        std::cerr << "Output device error : " << outputDevice->error() << std::endl;
-        //inputDevice->stop();
-        std::cerr << "Stopping output device." << std::endl;
+        std::cerr << "Restarting output (and input) device. Error before reset " << outputDevice->error() << " buffer size : " << outputDevice->bufferSize() << std::endl;
+        inputDevice->stop();
         outputDevice->stop();
+        inputDevice->start(inputProcessor);
+        outputDevice->start(outputProcessor);
+        std::cerr << "Output device restarted." << std::endl;
     }
     while(outputProcessor && inputProcessor && inputProcessor->hasPendingPackets()) {
         std::cerr << "Processing packet." << std::endl;
