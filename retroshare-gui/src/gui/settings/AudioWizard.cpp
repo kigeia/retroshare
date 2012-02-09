@@ -271,13 +271,10 @@ void AudioWizard::on_Ticker_timeout() {
 
 void AudioWizard::loopAudio() {
     if (outputDevice && outputDevice->error() != QAudio::NoError) {
-        //TODO : find a way to restart output device, but there is a pulseaudio locks that prevents it here
-        std::cerr << "Restarting output (and input) device. Error before reset " << outputDevice->error() << " buffer size : " << outputDevice->bufferSize() << std::endl;
-        inputDevice->stop();
+        std::cerr << "Stopping output device. Error " << outputDevice->error() << std::endl;
         outputDevice->stop();
-        inputDevice->start(inputProcessor);
-        outputDevice->start(outputProcessor);
-        std::cerr << "Output device restarted." << std::endl;
+        //TODO : find a way to restart output device, but there is a pulseaudio locks that prevents it here but it works in ChatWidget.cpp
+        //outputDevice->start(outputProcessor);
     }
     while(outputProcessor && inputProcessor && inputProcessor->hasPendingPackets()) {
         std::cerr << "Processing packet." << std::endl;
