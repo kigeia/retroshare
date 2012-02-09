@@ -132,7 +132,7 @@ void ChatLobbyDialog::addIncomingChatMsg(const ChatInfo& info)
 	QString name = QString::fromUtf8(info.peer_nickname.c_str());
 
         if (info.audio_data_size != 0 && info.audio_data) {
-            ui.chatWidget->addAudioData(new QByteArray((const char*)info.audio_data, info.audio_data_size));
+            ui.chatWidget->addAudioData(new QByteArray((const char*)info.audio_data, info.audio_data_size), name);
         } else {
             ui.chatWidget->addChatMsg(true, name, sendTime, recvTime, message, ChatWidget::TYPE_NORMAL);
         }

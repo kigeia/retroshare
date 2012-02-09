@@ -124,8 +124,8 @@ ChatWidget::ChatWidget(QWidget *parent) :
 
         resetStatusBar();
 
-        outputProcessor = NULL;
-        outputDevice = NULL;
+        //outputProcessor = NULL;
+        //outputDevice = NULL;
         inputProcessor = NULL;
         inputDevice = NULL;
 }
@@ -134,9 +134,9 @@ ChatWidget::~ChatWidget()
 {
 	processSettings(false);
 
-        if (outputDevice) {
+        /*if (outputDevice) {
             outputDevice->stop();
-        }
+        }*/
         if (inputDevice) {
             inputDevice->stop();
         }
@@ -723,9 +723,9 @@ void ChatWidget::toggleAudioListen() {
     if (ui->audioListenToggleButton->isChecked()) {
     } else {
         ui->audioListenToggleButton->setChecked(false);
-        if (outputDevice) {
+        /*if (outputDevice) {
             outputDevice->stop();
-        }
+        }*/
     }
 }
 
@@ -753,7 +753,7 @@ void ChatWidget::toggleAudioMuteCapture() {
 
 }
 
-void ChatWidget::addAudioData(QByteArray* array) {
+void ChatWidget::addAudioData(QByteArray* array, const QString name) {
     if (!ui->audioListenToggleButton->isChecked()) {
         //launch an animation. Don't launch it if already animating
         if (!ui->audioListenToggleButton->graphicsEffect() ||
@@ -774,16 +774,21 @@ void ChatWidget::addAudioData(QByteArray* array) {
         return;
     }
 
+    QAudioOutput *outputDevice = outputDeviceMap.value(name);
+    if (!outputDevice) {
+        outputDevice = AudioDeviceHelper::getDefaultOutputDevice();
+        outputDeviceMap.insert(name, outputDevice);
+    }
 
+    QtSpeex::SpeexOutputProcessor *outputProcessor = outputProcessorMap.value(name);
     if (!outputProcessor) {
         //start output audio device
         outputProcessor = new QtSpeex::SpeexOutputProcessor();
+        outputProcessorMap.insert(name,outputProcessor);
         outputProcessor->open(QIODevice::ReadOnly | QIODevice::Unbuffered);
-        if (!outputDevice) {
-            outputDevice = AudioDeviceHelper::getDefaultOutputDevice();
-        }
         outputDevice->start(outputProcessor);
     }
+
     if (outputDevice && outputDevice->error() != QAudio::NoError) {
         std::cerr << "Restarting output device. Error before reset " << outputDevice->error() << " buffer size : " << outputDevice->bufferSize() << std::endl;
         outputDevice->stop();

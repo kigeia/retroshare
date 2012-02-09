@@ -24,6 +24,8 @@
 #define CHATWIDGET_H
 
 #include <QWidget>
+#include <QString>
+#include <QMap>
 #include <QtMultimediaKit/QAudioInput>
 #include <QtMultimediaKit/QAudioOutput>
 
@@ -73,7 +75,7 @@ public:
 
 	bool setStyle();
 	const RSStyle *getStyle() { return &style; }
-        void addAudioData(QByteArray*);
+        void addAudioData(QByteArray*, const QString name);
 
 private slots:
 	void clearChatHistory();
@@ -152,9 +154,9 @@ private:
 	bool firstShow;
 
         QAudioInput* inputDevice;
-        QAudioOutput* outputDevice;
+        QMap<QString, QAudioOutput*> outputDeviceMap;
         QtSpeex::SpeexInputProcessor* inputProcessor;
-        QtSpeex::SpeexOutputProcessor* outputProcessor;
+        QMap<QString, QtSpeex::SpeexOutputProcessor*> outputProcessorMap;
 
 	Ui::ChatWidget *ui;
 };
