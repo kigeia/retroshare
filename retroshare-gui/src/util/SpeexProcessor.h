@@ -51,6 +51,7 @@ namespace QtSpeex {
                 int iMaxBitRate;
                 int iRealTimeBitrate;
                 bool bPreviousVoice;
+                void setEchoState(SpeexEchoState*);//use an echo_state from an output speex processor
 
 	signals:
 		void networkPacketReady();
@@ -74,6 +75,7 @@ namespace QtSpeex {
 
                 SpeexPreprocessState* preprocessor;
                 SpeexEchoState       *echo_state;
+                short * psClean; //temp buffer for audio sampling after echo cleaning (if enabled)
 
                 QByteArray inputBuffer;
                 QList<QByteArray> outputNetworkBuffer;
@@ -90,6 +92,7 @@ namespace QtSpeex {
                 virtual ~SpeexOutputProcessor();
 
                 void putNetworkPacket(QString name, QByteArray packet);
+                SpeexEchoState* initEchoState();
 
         protected:
                 virtual qint64 readData(char *data, qint64 maxSize);
