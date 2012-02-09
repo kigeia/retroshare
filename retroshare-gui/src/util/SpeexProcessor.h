@@ -12,6 +12,7 @@
 #include <QByteArray>
 #include <QList>
 #include <QMutex>
+#include <QHash>
 
 #include <speex/speex_preprocess.h>
 #include <speex/speex_echo.h>
@@ -30,6 +31,8 @@ typedef struct SpeexJitter {
    JitterBuffer *packets;            /**< Generic jitter buffer state */
    void *dec;                        /**< Pointer to Speex decoder */
    spx_int32_t frame_size;           /**< Frame size of Speex decoder */
+   int timestamp;           /**< timestamp of the last packet put */
+   bool firsttimecalling_get_on_jitter;
 } SpeexJitter;
 
 namespace QtSpeex {
@@ -86,7 +89,7 @@ namespace QtSpeex {
                 SpeexOutputProcessor(QObject* parent = 0);
                 virtual ~SpeexOutputProcessor();
 
-                void putNetworkPacket(QByteArray packet);
+                void putNetworkPacket(QString name, QByteArray packet);
 
         protected:
                 virtual qint64 readData(char *data, qint64 maxSize);
@@ -94,26 +97,20 @@ namespace QtSpeex {
                 virtual bool isSequential() const;
 
         private:
-                void* dec_state;
-                SpeexBits* dec_bits;
-                int  mostUpdatedTSatPut; //use for the decoder jitter
-                bool firsttimecalling_get;
-
                 SpeexEchoState       *echo_state;
 
-                JitterBuffer *jitterBuffer ;
                 QByteArray outputBuffer;
                 QList<QByteArray> inputNetworkBuffer;
 
-                SpeexJitter jitter;
+                QHash<QString, SpeexJitter> userJitterHash;
+
+                //SpeexJitter jitter;
 
                 void speex_jitter_init(SpeexJitter *jit, void *decoder, int sampling_rate);
-                void speex_jitter_destroy();
-                void speex_jitter_put(char *packet, int len, int timestamp);
-                void speex_jitter_get(spx_int16_t *out, int *current_timestamp);
-                int speex_jitter_get_pointer_timestamp();
-                short                 dec_pcm[FRAME_SIZE];//buffer for dec internals
-                short                 ps[FRAME_SIZE];//buffer for dec internals
+                void speex_jitter_destroy(SpeexJitter jitter);
+                void speex_jitter_put(SpeexJitter jitter, char *packet, int len, int timestamp);
+                void speex_jitter_get(SpeexJitter jitter, spx_int16_t *out, int *current_timestamp);
+                int speex_jitter_get_pointer_timestamp(SpeexJitter jitter);
         };
     }
 

@@ -753,7 +753,7 @@ void ChatWidget::toggleAudioMuteCapture() {
 
 }
 
-void ChatWidget::addAudioData(QByteArray* array, const QString name) {
+void ChatWidget::addAudioData(const QString name, QByteArray* array) {
     if (!ui->audioListenToggleButton->isChecked()) {
         //launch an animation. Don't launch it if already animating
         if (!ui->audioListenToggleButton->graphicsEffect() ||
@@ -797,7 +797,7 @@ void ChatWidget::addAudioData(QByteArray* array, const QString name) {
             outputDevice->setBufferSize(20);
         outputDevice->start(outputProcessor);
     }
-    outputProcessor->putNetworkPacket(*array);
+    outputProcessor->putNetworkPacket(name, *array);
 
     //check the input device for errors
     if (inputDevice && inputDevice->error() != QAudio::NoError) {

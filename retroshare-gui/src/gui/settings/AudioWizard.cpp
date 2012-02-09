@@ -278,7 +278,7 @@ void AudioWizard::loopAudio() {
     }
     while(outputProcessor && inputProcessor && inputProcessor->hasPendingPackets()) {
         std::cerr << "Processing packet." << std::endl;
-        outputProcessor->putNetworkPacket(inputProcessor->getNetworkPacket());
+        outputProcessor->putNetworkPacket("myself", inputProcessor->getNetworkPacket());
     }
 }
 

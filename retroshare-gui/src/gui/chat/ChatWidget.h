@@ -75,7 +75,7 @@ public:
 
 	bool setStyle();
 	const RSStyle *getStyle() { return &style; }
-        void addAudioData(QByteArray*, const QString name);
+        void addAudioData(const QString name, QByteArray*);
 
 private slots:
 	void clearChatHistory();

@@ -368,21 +368,9 @@ qint64 SpeexInputProcessor::writeData(const char *data, qint64 maxSize) {
 
 
 SpeexOutputProcessor::SpeexOutputProcessor(QObject *parent) : QIODevice(parent),
-    dec_state(0),
-    dec_bits(),
     echo_state(0),
-    jitter(),
-    outputBuffer(),
-    mostUpdatedTSatPut(0),
-    firsttimecalling_get(true)
+    outputBuffer()
 {
-        dec_bits = new SpeexBits;
-        speex_bits_init(dec_bits);
-        dec_state = speex_decoder_init(&speex_wb_mode);
-        int on = 1;
-        speex_decoder_ctl(dec_state, SPEEX_SET_ENH, &on);// Set the perceptual enhancement
-        speex_jitter_init(&jitter, dec_state, SAMPLING_RATE);
-
         /*echo_state = speex_echo_state_init(FRAME_SIZE, ECHOTAILSIZE*FRAME_SIZE);
         int tmp = SAMPLING_RATE;
         speex_echo_ctl(echo_state, SPEEX_ECHO_SET_SAMPLING_RATE, &tmp);*/
@@ -390,15 +378,14 @@ SpeexOutputProcessor::SpeexOutputProcessor(QObject *parent) : QIODevice(parent),
 
 SpeexOutputProcessor::~SpeexOutputProcessor() {
         //speex_echo_state_destroy(echo_state);
-
-        speex_decoder_destroy(dec_state);
-
-
-        speex_bits_destroy(dec_bits);
-        delete dec_bits;
+    QHashIterator<QString, SpeexJitter> i(userJitterHash);
+    while (i.hasNext()) {
+        i.next();
+        speex_jitter_destroy(i.value());
+    }
 }
 
-void SpeexOutputProcessor::putNetworkPacket(QByteArray packet) {
+void SpeexOutputProcessor::putNetworkPacket(QString name, QByteArray packet) {
     //buffer:
     //  timestamp | encodedBuf
     // —————–———–——————–———–——————–———–——————–
@@ -407,10 +394,16 @@ void SpeexOutputProcessor::putNetworkPacket(QByteArray packet) {
     if (packet.size() > 4)
     {
         int recv_timestamp = ((int*)packet.data())[0];
-        mostUpdatedTSatPut = recv_timestamp;
-        if (firsttimecalling_get)
-            return;
-        speex_jitter_put((char *)packet.data()+4, packet.size()-4, recv_timestamp);
+        SpeexJitter userJitter;
+        if (userJitterHash.contains(name)) {
+            userJitter = userJitterHash.value(name);
+        } else {
+            speex_jitter_init(&userJitter, speex_decoder_init(&speex_wb_mode), SAMPLING_RATE);
+            int on = 1;
+            speex_decoder_ctl(userJitter.dec, SPEEX_SET_ENH, &on);
+            userJitterHash.insert(name, userJitter);
+        }
+        speex_jitter_put(userJitter, (char *)packet.data()+4, packet.size()-4, recv_timestamp);
     }
 }
 
@@ -430,18 +423,31 @@ void quiet_speex_echo_playback (SpeexEchoState *st, const spx_int16_t *play) {
 }
 
 qint64 SpeexOutputProcessor::readData(char *data, qint64 maxSize) {
-    int ts = 0; //time stamp for the jitter call
-    if (firsttimecalling_get)
-    {
-        int ts = mostUpdatedTSatPut;
-        firsttimecalling_get = false;
-    }
 
     while(outputBuffer.size() < maxSize) {
-        QByteArray frame;
-        frame.resize(FRAME_SIZE * sizeof(qint16));
-        speex_jitter_get((spx_int16_t*)frame.data(), &ts);
-        outputBuffer += frame;
+        QByteArray result_frame;
+        result_frame.resize(FRAME_SIZE * sizeof(qint16));
+        result_frame.fill(0,FRAME_SIZE * sizeof(qint16));
+        QHashIterator<QString, SpeexJitter> i(userJitterHash);
+        while (i.hasNext()) {
+            i.next();
+            SpeexJitter jitter = i.value();
+            QByteArray intermediate_frame;
+            intermediate_frame.resize(FRAME_SIZE * sizeof(qint16));
+            speex_jitter_get(jitter, (spx_int16_t*)intermediate_frame.data(), 0);
+            for (int j = 0; j< FRAME_SIZE; j++) {
+                short sample1 = ((short*)result_frame.data())[j];
+                short sample2 = ((short*)intermediate_frame.data())[j];
+                float samplef1 = sample1 / 32768.0f;
+                float samplef2 = sample2 / 32768.0f;
+                float mixed = samplef1 + 0.8f * samplef2;
+                // hard clipping
+                if (mixed > 1.0f) mixed = 1.0f;
+                if (mixed < -1.0f) mixed = -1.0f;
+                ((spx_int16_t*)result_frame.data())[j] = (short)(mixed * 32768.0f);
+            }
+        }
+        outputBuffer += result_frame;
         //quiet_speex_echo_playback(echo_state, (qint16*)  frame.data());
     }
 
@@ -468,13 +474,16 @@ void SpeexOutputProcessor::speex_jitter_init(SpeexJitter *jit, void *decoder, in
    jit->valid_bits = 0;
 }
 
-void SpeexOutputProcessor::speex_jitter_destroy()
+void SpeexOutputProcessor::speex_jitter_destroy(SpeexJitter jitter)
 {
+    if (jitter.dec) {
+        speex_decoder_destroy(jitter.dec);
+    }
    jitter_buffer_destroy(jitter.packets);
    speex_bits_destroy(jitter.current_packet);
 }
 
-void SpeexOutputProcessor::speex_jitter_put(char *packet, int len, int timestamp)
+void SpeexOutputProcessor::speex_jitter_put(SpeexJitter jitter, char *packet, int len, int timestamp)
 {
    JitterBufferPacket p;
    p.data = packet;
@@ -484,7 +493,7 @@ void SpeexOutputProcessor::speex_jitter_put(char *packet, int len, int timestamp
    jitter_buffer_put(jitter.packets, &p);
 }
 
-void SpeexOutputProcessor::speex_jitter_get(spx_int16_t *out, int *current_timestamp)
+void SpeexOutputProcessor::speex_jitter_get(SpeexJitter jitter, spx_int16_t *out, int *current_timestamp)
 {
    int i;
    int ret;
@@ -541,7 +550,7 @@ void SpeexOutputProcessor::speex_jitter_get(spx_int16_t *out, int *current_times
    //debugPrint(msg);
 }
 
-int SpeexOutputProcessor::speex_jitter_get_pointer_timestamp()
+int SpeexOutputProcessor::speex_jitter_get_pointer_timestamp(SpeexJitter jitter)
 {
    return jitter_buffer_get_pointer_timestamp(jitter.packets);
 }
