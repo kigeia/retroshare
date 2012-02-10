@@ -871,10 +871,10 @@ bool RshareSettings::getVoipEchoCancel()
 {
     if (m_VoipEchoCancel == -1) {
         Settings->beginGroup(QString("Voip"));
-        m_VoipEchoCancel = value("VoipEchoCancel", 0).toInt();
+        m_VoipEchoCancel = value("VoipEchoCancel", true).toBool();
         Settings->endGroup();
     }
-
+    std::cerr << "returning m_VoipEchoCancel : " << m_VoipEchoCancel;
     return m_VoipEchoCancel;
 }
 
