@@ -738,7 +738,7 @@ void ChatWidget::toggleAudioMuteCapture() {
         if (!inputProcessor) {
             inputProcessor = new QtSpeex::SpeexInputProcessor();
             if (outputProcessor) {
-                inputProcessor->setEchoState(outputProcessor->initEchoState());
+                connect(outputProcessor, SIGNAL(playingFrame(QByteArray*)), inputProcessor, SLOT(addEchoFrame(QByteArray*)));
             }
             inputProcessor->open(QIODevice::WriteOnly | QIODevice::Unbuffered);
         }
@@ -785,7 +785,7 @@ void ChatWidget::addAudioData(const QString name, QByteArray* array) {
         //start output audio device
         outputProcessor = new QtSpeex::SpeexOutputProcessor();
         if (inputProcessor) {
-            inputProcessor->setEchoState(outputProcessor->initEchoState());
+            connect(outputProcessor, SIGNAL(playingFrame(QByteArray*)), inputProcessor, SLOT(addEchoFrame(QByteArray*)));
         }
         outputProcessor->open(QIODevice::ReadOnly | QIODevice::Unbuffered);
         outputDevice->start(outputProcessor);

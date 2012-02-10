@@ -21,10 +21,12 @@ SpeexInputProcessor::SpeexInputProcessor(QObject *parent) : QIODevice(parent),
     enc_state(0),
     enc_bits(),
     send_timestamp(0),
+    last_ts_echo_fail(0),
     echo_state(0),
     inputBuffer(),
     iMaxBitRate(16800),
-    bResetProcessor(true)
+    bResetProcessor(true),
+    echoFrameStack()
 {
         for (int i=0; i<FRAME_SIZE; i++)
                 pcm[i] = 0;
@@ -34,15 +36,11 @@ SpeexInputProcessor::SpeexInputProcessor(QObject *parent) : QIODevice(parent),
         speex_bits_reset(enc_bits);
         enc_state = speex_encoder_init(&speex_wb_mode);
 
-        int iArg=1;
-        speex_encoder_ctl(enc_state,SPEEX_SET_VBR, &iArg);
-
-
-        iArg = 0;
+        int iArg = 0;
         speex_encoder_ctl(enc_state,SPEEX_SET_VAD, &iArg);
         speex_encoder_ctl(enc_state,SPEEX_SET_DTX, &iArg);
 
-        float fArg=8.0;
+        float fArg=9.0;
         speex_encoder_ctl(enc_state,SPEEX_SET_VBR_QUALITY, &fArg);
 
         iArg = iMaxBitRate;
@@ -51,15 +49,10 @@ SpeexInputProcessor::SpeexInputProcessor(QObject *parent) : QIODevice(parent),
         iArg = 10;
         speex_encoder_ctl(enc_state,SPEEX_SET_COMPLEXITY, &iArg);
 
-        iArg = 10;
+        iArg = 9;
         speex_encoder_ctl(enc_state,SPEEX_SET_QUALITY, &iArg);
 
         echo_state = NULL;
-        /*echo_state = speex_echo_state_init(FRAME_SIZE, ECHOTAILSIZE*FRAME_SIZE);
-        iArg = SAMPLING_RATE;
-        speex_echo_ctl(echo_state, SPEEX_ECHO_SET_SAMPLING_RATE, &iArg);
-        speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_ECHO_STATE, echo_state);*/
-
 
         //iEchoFreq = iMicFreq = iSampleRate;
 
@@ -125,17 +118,6 @@ bool SpeexInputProcessor::hasPendingPackets() {
         return !outputNetworkBuffer.empty();
 }
 
-//make it quiet because it spams too much the standard ouptut and error
-void quiet_speex_echo_capture (SpeexEchoState *st, const spx_int16_t *rec, spx_int16_t *out) {
-    int orig_fd = dup(2);
-    int fd = open("/dev/null", O_WRONLY);
-    dup2(fd, 2);
-    speex_echo_capture(st, rec, out);
-    close(fd);
-    dup2(orig_fd, 2);
-    close(orig_fd);
-}
-
 qint64 SpeexInputProcessor::writeData(const char *data, qint64 maxSize) {
         int iArg;
         int i;
@@ -147,9 +129,8 @@ qint64 SpeexInputProcessor::writeData(const char *data, qint64 maxSize) {
         while(inputBuffer.size() > FRAME_SIZE * sizeof(qint16)) {
 
                 QByteArray source_frame = inputBuffer.left(FRAME_SIZE * sizeof(qint16));
-                const short* psMic = (const short *)source_frame.data();
+                short* psMic = (short *)source_frame.data();
 
-                //quiet_speex_echo_capture(echo_state, psMic, pcm);
                 //let's do volume detection
                 iFrameCounter++;
                 sum=1.0f;
@@ -207,15 +188,24 @@ qint64 SpeexInputProcessor::writeData(const char *data, qint64 maxSize) {
                 iArg = Settings->getVoipiNoiseSuppress() - iArg;
                 speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_NOISE_SUPPRESS, &iArg);
 
-                short * psSource;
-                if (echo_state) {
-                        quiet_speex_echo_capture(echo_state, psMic, psClean);
-                        speex_preprocess_run(preprocessor, psClean);
-                        psSource = psClean;
-                } else {
-                        speex_preprocess_run(preprocessor, (short int*)source_frame.data());
-                        psSource = (short int*)source_frame.data();
+                short * psSource = psMic;
+                if (echo_state && Settings->getVoipEchoCancel()) {
+                        if (echoFrameStack.empty()) {
+                            if (inputBuffer.size() < SAMPLING_RATE / 2) {
+                                //ok let's fill it in till 0.5s latency
+                                return maxSize;
+                            } else {
+                                //too much AEC problems, disabling
+                                std::cerr << "Echo buffer fill in is too slow. Disabling AEC for this conversation." << std::endl;
+                                echo_state = NULL;
+                                last_ts_echo_fail = send_timestamp;
+                            }
+                        } else {
+                            speex_echo_cancellation(echo_state, psMic, (short*)echoFrameStack.pop()->data(), psClean);
+                            psSource = psClean;
+                        }
                 }
+                speex_preprocess_run(preprocessor, psSource);
 
                 //we will now analize the processed signal
                 sum=1.0f;
@@ -241,7 +231,7 @@ qint64 SpeexInputProcessor::writeData(const char *data, qint64 maxSize) {
 
                 if (! bIsSpeech) {
                         iHoldFrames++;
-                        if (iHoldFrames < Settings->getVoiceHold())
+                        if (iHoldFrames < Settings->getVoipVoiceHold())
                                 bIsSpeech = true;
                 } else {
                         iHoldFrames = 0;
@@ -291,19 +281,35 @@ qint64 SpeexInputProcessor::writeData(const char *data, qint64 maxSize) {
                         speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_AGC_INCREMENT, &increment);
                 }
 
-                int vbr = 0;
-                speex_encoder_ctl(enc_state, SPEEX_GET_VBR_MAX_BITRATE, &vbr);
-                if (vbr != iMaxBitRate) {
-                        vbr = iMaxBitRate;
-                        speex_encoder_ctl(enc_state, SPEEX_SET_VBR_MAX_BITRATE, &vbr);
+
+                int vbr_on=0;
+                //just use fixed bitrate for now
+                //encryption of VBR-encoded speech may not ensure complete privacy, as phrases can still be identified, at least in a controlled setting with a small dictionary of phrases, by analysing the pattern of variation of the bit rate.
+                if (Settings->getVoipATransmit() == RshareSettings::AudioTransmitVAD) {//maybe we can do fixer bitrate when voice detection is active
+                    vbr_on = 0;
+                } else {//maybe we can do vbr for ppt and continuous
+                    vbr_on = 0;
+                }
+                speex_encoder_ctl(enc_state,SPEEX_SET_VBR, &vbr_on);
+
+                int br = 0;
+                speex_encoder_ctl(enc_state, SPEEX_GET_VBR_MAX_BITRATE, &br);
+                if (br != iMaxBitRate) {
+                        br = iMaxBitRate;
+                        speex_encoder_ctl(enc_state, SPEEX_SET_VBR_MAX_BITRATE, &br);
+                }
+                speex_encoder_ctl(enc_state, SPEEX_GET_BITRATE, &br);
+                if (br != iMaxBitRate) {
+                        br = iMaxBitRate;
+                        speex_encoder_ctl(enc_state, SPEEX_SET_BITRATE, &br);
                 }
 
                 if (! bPreviousVoice)
                         speex_encoder_ctl(enc_state, SPEEX_RESET_STATE, NULL);
 
-                speex_bits_reset(enc_bits);
-                speex_encode_int(enc_state, psSource, enc_bits);
                 if (bIsSpeech) {
+                    speex_bits_reset(enc_bits);
+                    speex_encode_int(enc_state, psSource, enc_bits);
                     QByteArray networkFrame;
                     networkFrame.resize(speex_bits_nbytes(enc_bits)+4);//add 4 for the frame timestamp for the jitter buffer
                     int packetSize = speex_bits_write(enc_bits, networkFrame.data()+4, networkFrame.size()-4);
@@ -332,22 +338,16 @@ qint64 SpeexInputProcessor::writeData(const char *data, qint64 maxSize) {
 
 
 SpeexOutputProcessor::SpeexOutputProcessor(QObject *parent) : QIODevice(parent),
-    echo_state(0),
     outputBuffer()
 {
-        echo_state = NULL;
 }
 
 SpeexOutputProcessor::~SpeexOutputProcessor() {
-        //speex_echo_state_destroy(echo_state);
     QHashIterator<QString, SpeexJitter*> i(userJitterHash);
     while (i.hasNext()) {
         i.next();
         speex_jitter_destroy(*(i.value()));
         free (i.value());
-    }
-    if (echo_state) {
-        speex_echo_state_destroy(echo_state);
     }
 }
 
@@ -383,29 +383,31 @@ bool SpeexInputProcessor::isSequential() const {
         return true;
 }
 
-void SpeexInputProcessor::setEchoState(SpeexEchoState* e_state) {
-    echo_state = e_state;
-    bResetProcessor = true;
+void SpeexInputProcessor::addEchoFrame(QByteArray* echo_frame) {
+    if (Settings->getVoipEchoCancel() && echo_frame &&
+        (echo_state || !last_ts_echo_fail)) {//if the echo_state is null and the last_ts_echo_fail is not, it meas the echo has been disabled
+        echoFrameStack.append(echo_frame);
+        if (echoFrameStack.size() > 10) {
+            std::cerr << "Echo frame are filling too much." << std::endl;
+            echoFrameStack.pop();
+        }
+        if (!echo_state) {
+            echo_state = speex_echo_state_init(FRAME_SIZE, ECHOTAILSIZE*FRAME_SIZE);
+            int tmp = SAMPLING_RATE;
+            speex_echo_ctl(echo_state, SPEEX_ECHO_SET_SAMPLING_RATE, &tmp);
+            bResetProcessor = true;
+        }
+    }
 }
 
-//make it quiet because it spams too much the standard error
-void quiet_speex_echo_playback (SpeexEchoState *st, const spx_int16_t *play) {
-    int orig_fd = dup(2);
-    int fd = open("/dev/null", O_WRONLY);
-    dup2(fd, 2);
-    speex_echo_playback(st, play);
-    close(fd);
-    dup2(orig_fd, 2);
-    close(orig_fd);
-}
 
 qint64 SpeexOutputProcessor::readData(char *data, qint64 maxSize) {
 
     int ts = 0; //time stamp for the jitter call
     while(outputBuffer.size() < maxSize) {
-        QByteArray result_frame;
-        result_frame.resize(FRAME_SIZE * sizeof(qint16));
-        result_frame.fill(0,FRAME_SIZE * sizeof(qint16));
+        QByteArray* result_frame = new QByteArray();
+        result_frame->resize(FRAME_SIZE * sizeof(qint16));
+        result_frame->fill(0,FRAME_SIZE * sizeof(qint16));
         QHashIterator<QString, SpeexJitter*> i(userJitterHash);
         while (i.hasNext()) {
             i.next();
@@ -419,7 +421,7 @@ qint64 SpeexOutputProcessor::readData(char *data, qint64 maxSize) {
             }
             speex_jitter_get(*jitter, (spx_int16_t*)intermediate_frame.data(), &ts);
             for (int j = 0; j< FRAME_SIZE; j++) {
-                short sample1 = ((short*)result_frame.data())[j];
+                short sample1 = ((short*)result_frame->data())[j];
                 short sample2 = ((short*)intermediate_frame.data())[j];
                 float samplef1 = sample1 / 32768.0f;
                 float samplef2 = sample2 / 32768.0f;
@@ -427,12 +429,11 @@ qint64 SpeexOutputProcessor::readData(char *data, qint64 maxSize) {
                 // hard clipping
                 if (mixed > 1.0f) mixed = 1.0f;
                 if (mixed < -1.0f) mixed = -1.0f;
-                ((spx_int16_t*)result_frame.data())[j] = (short)(mixed * 32768.0f);
+                ((spx_int16_t*)result_frame->data())[j] = (short)(mixed * 32768.0f);
             }
         }
-        outputBuffer += result_frame;
-        if (echo_state)
-            quiet_speex_echo_playback(echo_state, (qint16*)  result_frame.data());
+        outputBuffer += *result_frame;
+        emit playingFrame(result_frame);
     }
 
     QByteArray resultBuffer = outputBuffer.left(maxSize);
@@ -539,11 +540,4 @@ void SpeexOutputProcessor::speex_jitter_get(SpeexJitter jitter, spx_int16_t *out
 int SpeexOutputProcessor::speex_jitter_get_pointer_timestamp(SpeexJitter jitter)
 {
    return jitter_buffer_get_pointer_timestamp(jitter.packets);
-}
-
-SpeexEchoState* SpeexOutputProcessor::initEchoState() {
-    echo_state = speex_echo_state_init(FRAME_SIZE, ECHOTAILSIZE*FRAME_SIZE);
-    int tmp = SAMPLING_RATE;
-    speex_echo_ctl(echo_state, SPEEX_ECHO_SET_SAMPLING_RATE, &tmp);
-    return echo_state;
 }

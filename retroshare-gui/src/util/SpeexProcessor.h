@@ -13,6 +13,7 @@
 #include <QList>
 #include <QMutex>
 #include <QHash>
+#include <QStack>
 
 #include <speex/speex_preprocess.h>
 #include <speex/speex_echo.h>
@@ -51,7 +52,9 @@ namespace QtSpeex {
                 int iMaxBitRate;
                 int iRealTimeBitrate;
                 bool bPreviousVoice;
-                void setEchoState(SpeexEchoState*);//use an echo_state from an output speex processor
+
+        public slots:
+                void addEchoFrame(QByteArray*);
 
 	signals:
 		void networkPacketReady();
@@ -62,6 +65,7 @@ namespace QtSpeex {
                 virtual bool isSequential() const;
 
         private:
+                QStack<QByteArray*> echoFrameStack;
                 int iFrameCounter;
                 int iSilentFrames;
                 int iHoldFrames;
@@ -70,6 +74,7 @@ namespace QtSpeex {
                 void* enc_state;
                 SpeexBits* enc_bits;
                 int send_timestamp; //set at the encode time for the jitter buffer of the reciever
+                int last_ts_echo_fail;
 
                 bool bResetProcessor;
 
@@ -92,16 +97,15 @@ namespace QtSpeex {
                 virtual ~SpeexOutputProcessor();
 
                 void putNetworkPacket(QString name, QByteArray packet);
-                SpeexEchoState* initEchoState();
 
         protected:
                 virtual qint64 readData(char *data, qint64 maxSize);
                 virtual qint64 writeData(const char *data, qint64 maxSize) {return 0;} //not used for output processor
                 virtual bool isSequential() const;
 
+        signals:
+                void playingFrame(QByteArray*);
         private:
-                SpeexEchoState       *echo_state;
-
                 QByteArray outputBuffer;
                 QList<QByteArray> inputNetworkBuffer;
 

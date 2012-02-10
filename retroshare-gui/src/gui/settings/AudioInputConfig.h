@@ -76,6 +76,7 @@ class AudioInputConfig : public ConfigPage {
                 void on_qcbTransmit_currentIndexChanged(int v);
                 void on_Tick_timeout();
                 void on_qpbAudioWizard_clicked();
+                void on_qcbEchoCancel_clicked();
 };
 
 #endif

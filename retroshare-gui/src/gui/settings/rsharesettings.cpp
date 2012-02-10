@@ -92,13 +92,14 @@ RshareSettings *Settings = NULL;
 RshareSettings::RshareSettings()
 {
     m_maxTimeBeforeIdle = -1;
-    m_VoiceHold = -1;
+    m_VoipVoiceHold = -1;
     m_VoipATransmit = RshareSettings::AudioTransmitNotSet;
     m_VoipfVADmax = -1;
     m_VoipfVADmin = -1;
     m_VoipiMinLoudness = -1;
     m_VoipiNoiseSuppress = -1;
     m_VoipVoiceActivityD = RshareSettings::VADSourceNotSet;
+    m_VoipEchoCancel = -1;
 
     initSettings();
 }
@@ -847,21 +848,41 @@ void RshareSettings::setVoipATransmit(RshareSettings::enumAudioTransmit eValue)
 }
 
 
-int RshareSettings::getVoiceHold()
+int RshareSettings::getVoipVoiceHold()
 {
-    if (m_VoiceHold == -1) {
+    if (m_VoipVoiceHold == -1) {
         Settings->beginGroup(QString("Voip"));
-        m_VoiceHold = value("VoiceHold", 75).toInt();
+        m_VoipVoiceHold = value("VoipVoiceHold", 75).toInt();
         Settings->endGroup();
     }
 
-    return m_VoiceHold;
+    return m_VoipVoiceHold;
 }
 
-void RshareSettings::setVoiceHold(int iValue)
+void RshareSettings::setVoipVoiceHold(int iValue)
 {
-    m_VoiceHold = iValue;
+    m_VoipVoiceHold = iValue;
     Settings->beginGroup(QString("Voip"));
-    setValue("VoiceHold", iValue);
+    setValue("VoipVoiceHold", iValue);
     Settings->endGroup();
 }
+
+bool RshareSettings::getVoipEchoCancel()
+{
+    if (m_VoipEchoCancel == -1) {
+        Settings->beginGroup(QString("Voip"));
+        m_VoipEchoCancel = value("VoipEchoCancel", 0).toInt();
+        Settings->endGroup();
+    }
+
+    return m_VoipEchoCancel;
+}
+
+void RshareSettings::setVoipEchoCancel(bool iValue)
+{
+    m_VoipEchoCancel = iValue;
+    Settings->beginGroup(QString("Voip"));
+    setValue("VoipEchoCancel", iValue);
+    Settings->endGroup();
+}
+

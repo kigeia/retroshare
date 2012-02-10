@@ -251,8 +251,10 @@ public:
   void setVoipfVADmin(int iValue);
     enumAudioTransmit getVoipATransmit();
     void setVoipATransmit(enumAudioTransmit atransmit);
-    int getVoiceHold();
-    void setVoiceHold(int iValue);
+    int getVoipVoiceHold();
+    void setVoipVoiceHold(int iValue);
+    bool getVoipEchoCancel();
+    void setVoipEchoCancel(bool iValue);
 
 protected:
   /** Default constructor. */
@@ -269,7 +271,8 @@ protected:
   int m_VoipfVADmax;
   int m_VoipfVADmin;
   enumAudioTransmit m_VoipATransmit;
-  int m_VoiceHold;
+  int m_VoipVoiceHold;
+  int m_VoipEchoCancel;
 
 };
 

@@ -127,10 +127,11 @@ void AudioInputConfig::loadSettings() {
         loadSlider(qsDoublePush, iroundf(static_cast<float>(r.uiDoublePush) / 1000.f + 0.5f));*/
         ui.qcbTransmit->setCurrentIndex(Settings->getVoipATransmit()-1);
         on_qcbTransmit_currentIndexChanged(Settings->getVoipATransmit()-1);
-        ui.qsTransmitHold->setValue(Settings->getVoiceHold());
-        on_qsTransmitHold_valueChanged(Settings->getVoiceHold());
+        ui.qsTransmitHold->setValue(Settings->getVoipVoiceHold());
+        on_qsTransmitHold_valueChanged(Settings->getVoipVoiceHold());
         ui.qsTransmitMin->setValue(Settings->getVoipfVADmin());
         ui.qsTransmitMax->setValue(Settings->getVoipfVADmax());
+        ui.qcbEchoCancel->setChecked(Settings->getVoipEchoCancel());
         //ui.qsDoublePush->setValue(iroundf(static_cast<float>(r.uiDoublePush) / 1000.f + 0.5f));
 
         //loadCheckBox(qcbPushClick, r.bPushClick);
@@ -162,28 +163,12 @@ bool AudioInputConfig::save(QString &/*errmsg*/) {//mainly useless beacause savi
         //s.iQuality = qsQuality->value();
         Settings->setVoipiNoiseSuppress((ui.qsNoise->value() == 14) ? 0 : - ui.qsNoise->value());
         Settings->setVoipiMinLoudness(20000 - ui.qsAmp->value());
-        Settings->setVoiceHold(ui.qsTransmitHold->value());
+        Settings->setVoipVoiceHold(ui.qsTransmitHold->value());
         Settings->setVoipfVADmin(ui.qsTransmitMin->value());
         Settings->setVoipfVADmax(ui.qsTransmitMax->value());
         /*s.uiDoublePush = qsDoublePush->value() * 1000;*/
         Settings->setVoipATransmit(static_cast<RshareSettings::enumAudioTransmit>(ui.qcbTransmit->currentIndex() + 1));
-
-        /*s.bPushClick = qcbPushClick->isChecked();
-	s.qsPushClickOn = qlePushClickPathOn->text();
-        s.qsPushClickOff = qlePushClickPathOff->text();*/
-
-        /*s.qsAudioInput = qcbSystem->currentText();
-	s.bEcho = qcbEcho->currentIndex() > 0;
-	s.bEchoMulti = qcbEcho->currentIndex() == 2;
-        s.bExclusiveInput = qcbExclusive->isChecked();*/
-
-        /*if (AudioInputRegistrar::qmNew) {
-		AudioInputRegistrar *air = AudioInputRegistrar::qmNew->value(qcbSystem->currentText());
-		int idx = qcbDevice->currentIndex();
-		if (idx > -1) {
-			air->setDeviceChoice(qcbDevice->itemData(idx), s);
-		}
-        }*/
+        Settings->setVoipEchoCancel(ui.qcbEchoCancel->isChecked());
 
         return true;
 }
@@ -206,7 +191,7 @@ void AudioInputConfig::on_qsTransmitHold_valueChanged(int v) {
         float val = static_cast<float>(v * FRAME_SIZE);
         val = val / SAMPLING_RATE;
         ui.qlTransmitHold->setText(tr("%1 s").arg(val, 0, 'f', 2));
-        Settings->setVoiceHold(v);
+        Settings->setVoipVoiceHold(v);
 }
 
 void AudioInputConfig::on_qsNoise_valueChanged(int v) {
@@ -227,6 +212,10 @@ void AudioInputConfig::on_qsAmp_valueChanged(int v) {
 	float d = 20000.0f/static_cast<float>(v);
         ui.qlAmp->setText(QString::fromLatin1("%1").arg(d, 0, 'f', 2));
         Settings->setVoipiMinLoudness(20000 - ui.qsAmp->value());
+}
+
+void AudioInputConfig::on_qcbEchoCancel_clicked() {
+    Settings->setVoipEchoCancel(ui.qcbEchoCancel->isChecked());
 }
 
 
