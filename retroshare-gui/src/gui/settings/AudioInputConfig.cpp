@@ -125,7 +125,6 @@ void AudioInputConfig::loadSettings() {
 	loadSlider(qsTransmitMax, iroundf(r.fVADmax * 32767.0f + 0.5f));
 	loadSlider(qsFrames, (r.iFramesPerPacket == 1) ? 1 : (r.iFramesPerPacket/2 + 1));
         loadSlider(qsDoublePush, iroundf(static_cast<float>(r.uiDoublePush) / 1000.f + 0.5f));*/
-        std::cerr << "Settings->getVoipATransmit() : " << Settings->getVoipATransmit() << std::endl;
         ui.qcbTransmit->setCurrentIndex(Settings->getVoipATransmit()-1);
         on_qcbTransmit_currentIndexChanged(Settings->getVoipATransmit()-1);
         ui.qsTransmitHold->setValue(Settings->getVoiceHold());
