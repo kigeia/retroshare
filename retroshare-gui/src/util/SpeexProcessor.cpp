@@ -191,8 +191,8 @@ qint64 SpeexInputProcessor::writeData(const char *data, qint64 maxSize) {
                 short * psSource = psMic;
                 if (echo_state && Settings->getVoipEchoCancel()) {
                         if (echoFrameStack.empty()) {
-                            if (inputBuffer.size() < SAMPLING_RATE / 2) {
-                                //ok let's fill it in till 0.5s latency
+                            if (inputBuffer.size() < SAMPLING_RATE * 1) {
+                                //ok let's fill it in till 1s latency
                                 return maxSize;
                             } else {
                                 //too much AEC problems, disabling
@@ -387,7 +387,7 @@ void SpeexInputProcessor::addEchoFrame(QByteArray* echo_frame) {
     if (Settings->getVoipEchoCancel() && echo_frame &&
         (echo_state || !last_ts_echo_fail)) {//if the echo_state is null and the last_ts_echo_fail is not, it meas the echo has been disabled
         echoFrameStack.append(echo_frame);
-        if (echoFrameStack.size() > 10) {
+        if (echoFrameStack.size() > 50) {
             std::cerr << "Echo frame are filling too much." << std::endl;
             echoFrameStack.pop();
         }

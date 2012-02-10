@@ -19,7 +19,7 @@
 #include <speex/speex_echo.h>
 #include <speex/speex_jitter.h>
 
-#define ECHOTAILSIZE  30
+#define ECHOTAILSIZE  40
 #define SAMPLING_RATE 16000 //must be the same as the speex setted mode (speex_wb_mode)
 #define FRAME_SIZE 320 //must be the same as the speex setted mode (speex_wb_mode)
 

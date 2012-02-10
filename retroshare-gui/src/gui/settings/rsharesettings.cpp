@@ -874,7 +874,6 @@ bool RshareSettings::getVoipEchoCancel()
         m_VoipEchoCancel = value("VoipEchoCancel", true).toBool();
         Settings->endGroup();
     }
-    std::cerr << "returning m_VoipEchoCancel : " << m_VoipEchoCancel;
     return m_VoipEchoCancel;
 }
 
