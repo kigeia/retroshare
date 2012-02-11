@@ -191,9 +191,10 @@ qint64 SpeexInputProcessor::writeData(const char *data, qint64 maxSize) {
 
                 short * psSource = psMic;
                 if (echo_state && Settings->getVoipEchoCancel()) {
-                        if (echoFrameStack.empty()) {
+                        if (echoFrameStack.empty() && iDropingFirstEchoFrame == ECHO_PLAYBACK_LATENCY) {
                             if (inputBuffer.size() < SAMPLING_RATE * 1) {
                                 //ok let's fill it in till 1s latency
+                                std::cerr << "Delaying input for echo reduction." << std::endl;
                                 return maxSize;
                             } else {
                                 //too much AEC problems, disabling
@@ -202,6 +203,7 @@ qint64 SpeexInputProcessor::writeData(const char *data, qint64 maxSize) {
                                 last_ts_echo_fail = send_timestamp;
                             }
                         } else {
+                            std::cerr << "Processing echo reduction." << std::endl;
                             speex_echo_cancellation(echo_state, psMic, (short*)echoFrameStack.pop()->data(), psClean);
                             psSource = psClean;
                         }
@@ -386,17 +388,24 @@ bool SpeexInputProcessor::isSequential() const {
 
 void SpeexInputProcessor::addEchoFrame(QByteArray* echo_frame) {
     if (Settings->getVoipEchoCancel() && echo_frame &&
-        (echo_state || !last_ts_echo_fail)) {//if the echo_state is null and the last_ts_echo_fail is not, it meas the echo has been disabled
-        echoFrameStack.append(echo_frame);
-        if (echoFrameStack.size() > 50) {
-            std::cerr << "Echo frame are filling too much." << std::endl;
-            echoFrameStack.pop();
-        }
-        if (!echo_state) {
+        (echo_state || !last_ts_echo_fail)) {//if the echo_state is null and the last_ts_echo_fail is not, it means the echo has been disabled
+        QMutexLocker l(&qmSpeex);
+        if (!echo_state) {//init echo_state
             echo_state = speex_echo_state_init(FRAME_SIZE, ECHOTAILSIZE*FRAME_SIZE);
             int tmp = SAMPLING_RATE;
             speex_echo_ctl(echo_state, SPEEX_ECHO_SET_SAMPLING_RATE, &tmp);
             bResetProcessor = true;
+            iDropingFirstEchoFrame = 0;
+        }
+        if (iDropingFirstEchoFrame < ECHO_PLAYBACK_LATENCY) {
+            std::cerr << "Droping first frames" << std::endl;
+            iDropingFirstEchoFrame++;
+        } else {
+            echoFrameStack.append(echo_frame);
+            if (echoFrameStack.size() > 50) {
+                std::cerr << "Echo frame are filling too much." << std::endl;
+                echoFrameStack.pop();
+            }
         }
     }
 }

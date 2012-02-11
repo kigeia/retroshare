@@ -237,6 +237,7 @@ void AudioWizard::on_Ticker_timeout() {
                 outputDevice = AudioDeviceHelper::getPreferedOutputDevice();
             }
             outputDevice->start(outputProcessor);
+            connect(outputProcessor, SIGNAL(playingFrame(QByteArray*)), inputProcessor, SLOT(addEchoFrame(QByteArray*)));
         }
 
         abVAD->iBelow = qsTransmitMin->value();
@@ -277,7 +278,6 @@ void AudioWizard::loopAudio() {
         //outputDevice->start(outputProcessor);
     }
     while(outputProcessor && inputProcessor && inputProcessor->hasPendingPackets()) {
-        std::cerr << "Processing packet." << std::endl;
         outputProcessor->putNetworkPacket("myself", inputProcessor->getNetworkPacket());
     }
 }
