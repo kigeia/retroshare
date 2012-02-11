@@ -163,7 +163,7 @@ qint64 SpeexInputProcessor::writeData(const char *data, qint64 maxSize) {
                         iArg = 30000;
                         speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_AGC_TARGET, &iArg);
 
-                        iArg = -60;
+                        iArg = -80;
                         speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_AGC_DECREMENT, &iArg);
 
                         iArg = Settings->getVoipiNoiseSuppress();
@@ -180,7 +180,8 @@ qint64 SpeexInputProcessor::writeData(const char *data, qint64 maxSize) {
 
                 float v = 30000.0f / static_cast<float>(Settings->getVoipiMinLoudness());
 
-                iArg = iroundf(floorf(20.0f * log10f(v)));
+                iArg = iroundf(floorf(5.0f * logf(v)));
+                std::cerr << "max gain : " << iArg << std::endl;
                 speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_AGC_MAX_GAIN, &iArg);
 
                 speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_GET_AGC_GAIN, &iArg);
