@@ -181,7 +181,6 @@ qint64 SpeexInputProcessor::writeData(const char *data, qint64 maxSize) {
                 float v = 30000.0f / static_cast<float>(Settings->getVoipiMinLoudness());
 
                 iArg = iroundf(floorf(5.0f * logf(v)));
-                std::cerr << "max gain : " << iArg << std::endl;
                 speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_SET_AGC_MAX_GAIN, &iArg);
 
                 speex_preprocess_ctl(preprocessor, SPEEX_PREPROCESS_GET_AGC_GAIN, &iArg);
@@ -202,7 +201,7 @@ qint64 SpeexInputProcessor::writeData(const char *data, qint64 maxSize) {
                                 echo_state = NULL;
                                 last_ts_echo_fail = send_timestamp;
                             }
-                        } else {
+                        } else if (!echoFrameStack.empty()) {
                             std::cerr << "Processing echo reduction." << std::endl;
                             speex_echo_cancellation(echo_state, psMic, (short*)echoFrameStack.pop()->data(), psClean);
                             psSource = psClean;
