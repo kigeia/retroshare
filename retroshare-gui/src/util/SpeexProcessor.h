@@ -19,9 +19,10 @@
 #include <speex/speex_echo.h>
 #include <speex/speex_jitter.h>
 
-#define ECHOTAILSIZE  40
 #define SAMPLING_RATE 16000 //must be the same as the speex setted mode (speex_wb_mode)
 #define FRAME_SIZE 320 //must be the same as the speex setted mode (speex_wb_mode)
+#define ECHOTAILSIZE  40
+#define ECHO_PLAYBACK_LATENCY 20 //playback frame latency of a common sound card
 
 class SpeexBits;
 
@@ -69,6 +70,7 @@ namespace QtSpeex {
                 int iFrameCounter;
                 int iSilentFrames;
                 int iHoldFrames;
+                int iDropingFirstEchoFrame;
 
                 QMutex qmSpeex;
                 void* enc_state;
