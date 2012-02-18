@@ -10,13 +10,14 @@ class p3ConfigMgr ;
 class p3ServiceServer ;
 class p3LinkMgr ;
 
-struct PluginInfo
+class PluginInfo
 {
-	RsPlugin *plugin ;
-	std::string info_string ;
-	std::string file_hash ;
-	std::string file_name ;
-	uint32_t status ;
+	public:
+		RsPlugin *plugin ;
+		std::string info_string ;
+		std::string file_hash ;
+		std::string file_name ;
+		uint32_t status ;
 };
 
 class RsPluginManager: public RsPluginHandler, public p3Config
@@ -39,6 +40,9 @@ class RsPluginManager: public RsPluginHandler, public p3Config
 		virtual const std::string& getRemoteCacheDir() const ;
 		virtual ftServer *getFileServer() const ;
 		virtual p3LinkMgr *getLinkMgr() const ;
+
+		virtual void allowAllPlugins(bool b) ;
+		virtual bool getAllowAllPlugins() const ;
 
 		// ---------------- Derived from p3Config -------------------//
 		//
@@ -84,6 +88,7 @@ class RsPluginManager: public RsPluginHandler, public p3Config
 
 		std::vector<PluginInfo> _plugins ;
 		std::set<std::string> _accepted_hashes ;
+		bool _allow_all_plugins ;
 
 		static std::string _plugin_entry_symbol ;
 		static std::string _remote_cache_dir ;

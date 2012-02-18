@@ -45,7 +45,8 @@ class QTranslator;
 class QApplication;
 class RsCacheService ;
 class ftServer ;
-class pqiService ;
+class ConfigPage ;
+class RsPQIService ;
 
 // Used for the status of plugins.
 //
@@ -77,12 +78,14 @@ class RsPlugin
 {
 	public:
 		virtual RsCacheService *rs_cache_service() 	const	{ return NULL ; }
-		virtual pqiService     *rs_pqi_service() 		const	{ return NULL ; }
+		virtual RsPQIService   *rs_pqi_service() 		const	{ return NULL ; }
 		virtual uint16_t        rs_service_id() 	   const	{ return 0    ; }
 
 		virtual MainPage       *qt_page()       		const	{ return NULL ; }
 		virtual QWidget        *qt_config_panel()		const	{ return NULL ; }
 		virtual QIcon          *qt_icon()       		const	{ return NULL ; }
+		virtual ConfigPage     *qt_config_page()  	const	{ return NULL ; }
+
 		virtual QTranslator    *qt_translator(QApplication * /* app */, const QString& /* languageCode */ ) const	{ return NULL ; }
 
 		virtual std::string configurationFileName() const { return std::string() ; }
@@ -104,6 +107,9 @@ class RsPluginHandler
 		virtual void getPluginStatus(int i,uint32_t& status,std::string& file_name,std::string& file_hash,std::string& error_string) const = 0 ;
 		virtual void enablePlugin(const std::string& hash) = 0;
 		virtual void disablePlugin(const std::string& hash) = 0;
+
+		virtual void allowAllPlugins(bool b) = 0 ;
+		virtual bool getAllowAllPlugins() const = 0 ;
 
 		virtual void slowTickPlugins(time_t sec) = 0 ;
 
