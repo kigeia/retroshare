@@ -57,6 +57,10 @@
 #include "chat/PopupChatDialog.h"
 #include "RetroShareLink.h"
 
+	// New Cache Classes - 
+//#include "gui/PhotoShare/PhotoDialog.h"
+//#include "gui/WikiPoos/WikiDialog.h"
+
 #ifdef UNFINISHED
 #include "unfinished/ApplicationWindow.h"
 #endif
@@ -315,6 +319,19 @@ MainWindow::MainWindow(QWidget* parent, Qt::WFlags flags)
                        createPageAction(QIcon(IMG_HELP), tr("Getting Started"), grp));
     }
 #endif
+
+#if 0
+	// New Cache Classes - 
+    	MainPage *photoPage = NULL;
+    	ui.stackPages->add(photoPage = new PhotoDialog(ui.stackPages),
+                       createPageAction(QIcon(IMG_HELP), tr("PhotoShare"), grp));
+
+	// New Cache Classes - 
+    	MainPage *wikiPage = NULL;
+    	ui.stackPages->add(wikiPage = new WikiDialog(ui.stackPages),
+                       createPageAction(QIcon(IMG_HELP), tr("WikiPoos"), grp));
+#endif
+
 
 
     /* Create the toolbar */
@@ -1149,6 +1166,9 @@ void MainWindow::showDhtWindow()
 #ifdef UNFINISHED
 void MainWindow::showApplWindow()
 {
+    std::cerr << "MainWindow::showApplWindow()";
+    std::cerr << std::endl;
+
     applicationWindow->show();
 }
 #endif

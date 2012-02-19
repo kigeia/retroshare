@@ -1,4 +1,9 @@
-CONFIG += qt gui uic qrc resources uitools idle bitdht # framecatcher# blogs
+CONFIG += qt gui uic qrc resources uitools idle bitdht 
+CONFIG += photoshare wikipoos 
+CONFIG += thewire 
+CONFIG += identities
+CONFIG += unfinished 
+
 QT     += network xml script 
 
 TEMPLATE = app
@@ -729,31 +734,34 @@ HEADERS += gui/unfinished/ApplicationWindow.h \
            gui/unfinished/CalDialog.h \
            gui/unfinished/ExampleDialog.h \
            gui/unfinished/GamesDialog.h \
-           gui/unfinished/PhotoDialog.h \
-           gui/unfinished/PhotoShow.h \
-           gui/unfinished/StatisticDialog.h \
-           gui/unfinished/profile/ProfileView.h \
-           gui/unfinished/profile/ProfileEdit.h
+
+#           gui/unfinished/profile/ProfileView.h \
+#           gui/unfinished/profile/ProfileEdit.h
+#           gui/unfinished/StatisticDialog.h \
+#           gui/unfinished/PhotoDialog.h \
+#           gui/unfinished/PhotoShow.h \
 
 FORMS += gui/unfinished/ApplicationWindow.ui \
          gui/unfinished/CalDialog.ui \
          gui/unfinished/ExampleDialog.ui \
          gui/unfinished/GamesDialog.ui \
-         gui/unfinished/PhotoDialog.ui \
-         gui/unfinished/PhotoShow.ui \
-         gui/unfinished/StatisticDialog.ui \
-         gui/unfinished/profile/ProfileView.ui \
-         gui/unfinished/profile/ProfileEdit.ui
+
+#         gui/unfinished/profile/ProfileView.ui \
+#         gui/unfinished/profile/ProfileEdit.ui
+#         gui/unfinished/StatisticDialog.ui \
+#         gui/unfinished/PhotoDialog.ui \
+#         gui/unfinished/PhotoShow.ui \
 
 SOURCES += gui/unfinished/ApplicationWindow.cpp \
            gui/unfinished/CalDialog.cpp \
            gui/unfinished/ExampleDialog.cpp \
            gui/unfinished/GamesDialog.cpp \
-           gui/unfinished/PhotoDialog.cpp \
-           gui/unfinished/PhotoShow.cpp \
-           gui/unfinished/StatisticDialog.cpp \
-           gui/unfinished/profile/ProfileView.cpp \
-           gui/unfinished/profile/ProfileEdit.cpp
+
+#           gui/unfinished/profile/ProfileView.cpp \
+#           gui/unfinished/profile/ProfileEdit.cpp
+#           gui/unfinished/StatisticDialog.cpp \
+#           gui/unfinished/PhotoDialog.cpp \
+#           gui/unfinished/PhotoShow.cpp \
 
           DEFINES *= UNFINISHED
 }
@@ -843,3 +851,75 @@ minimal {
                   util/stringutil.h \
                   lang/languagesupport.h
 }
+
+
+
+photoshare {
+
+	HEADERS += gui/PhotoShare/PhotoItem.h \
+		gui/PhotoShare/PhotoDialog.h \
+		gui/PhotoShare/PhotoAddDialog.h \
+		gui/PhotoShare/PhotoDetailsDialog.h \
+		gui/PhotoShare/PhotoDrop.h \
+
+	FORMS += gui/PhotoShare/PhotoItem.ui \
+		gui/PhotoShare/PhotoDialog.ui \
+		gui/PhotoShare/PhotoAddDialog.ui \
+		gui/PhotoShare/PhotoDetailsDialog.ui \
+
+	SOURCES += gui/PhotoShare/PhotoItem.cpp \
+		gui/PhotoShare/PhotoDialog.cpp \
+		gui/PhotoShare/PhotoAddDialog.cpp \
+		gui/PhotoShare/PhotoDetailsDialog.cpp \
+		gui/PhotoShare/PhotoDrop.cpp \
+
+}
+
+
+wikipoos {
+
+	HEADERS += gui/WikiPoos/WikiDialog.h \
+		gui/WikiPoos/WikiAddDialog.h \
+		gui/WikiPoos/WikiEditDialog.h \
+
+	FORMS += gui/WikiPoos/WikiDialog.ui \
+		gui/WikiPoos/WikiAddDialog.ui \
+		gui/WikiPoos/WikiEditDialog.ui \
+
+	SOURCES += gui/WikiPoos/WikiDialog.cpp \
+		gui/WikiPoos/WikiAddDialog.cpp \
+		gui/WikiPoos/WikiEditDialog.cpp \
+
+}
+
+
+
+thewire {
+
+	HEADERS += gui/TheWire/PulseItem.h \
+		gui/TheWire/WireDialog.h \
+		gui/TheWire/PulseAddDialog.h \
+
+	FORMS += gui/TheWire/PulseItem.ui \
+		gui/TheWire/WireDialog.ui \
+		gui/TheWire/PulseAddDialog.ui \
+
+	SOURCES += gui/TheWire/PulseItem.cpp \
+		gui/TheWire/WireDialog.cpp \
+		gui/TheWire/PulseAddDialog.cpp \
+
+}
+
+identities {
+
+	HEADERS += gui/Identity/IdDialog.h \
+		gui/Identity/IdEditDialog.h \
+
+	FORMS += gui/Identity/IdDialog.ui \
+		gui/Identity/IdEditDialog.ui \
+
+	SOURCES += gui/Identity/IdDialog.cpp \
+		gui/Identity/IdEditDialog.cpp \
+
+}
+
