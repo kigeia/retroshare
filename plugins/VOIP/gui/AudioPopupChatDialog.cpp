@@ -159,8 +159,7 @@ void AudioPopupChatDialog::sendAudioData() {
         QByteArray qbarray = inputProcessor->getNetworkPacket();
         RsVoipDataChunk chunk;
         chunk.size = qbarray.size();
-        chunk.data = malloc(qbarray.size());
-        memcpy(chunk.data,qbarray.constData(),qbarray.size()) ;
+        chunk.data = (void*)qbarray.constData();
         rsVoip->sendVoipData(peerId,chunk);
     }
 }
